@@ -427,3 +427,28 @@ button:focus-visible {
   text-align: center;
   pointer-events: none;
 }
+
+/* The level list (a stand-in for the world map). */
+.sheet.level-list {
+  gap: 8px;
+}
+.level-rows {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sheet .btn.level-row {
+  flex: none;
+  height: 60px;
+  margin: 0;
+  justify-content: space-between;
+  padding: 0 14px;
+  font-size: 15px;
+}
+.level-row small {
+  color: #ffd75e;
+  letter-spacing: 0.1em;
+}

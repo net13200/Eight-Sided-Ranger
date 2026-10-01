@@ -16,6 +16,7 @@
     "climb": "tsx tools/climb.ts",
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "build:playtest": "vite build --mode artifact && node tools/inline-artifact.mjs",
     "build:crazygames": "tsc --noEmit && vite build --mode crazygames && node tools/package-portal.mjs crazygames",
     "preview": "vite preview",
     "test:e2e": "playwright test",

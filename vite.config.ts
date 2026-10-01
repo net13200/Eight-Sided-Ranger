@@ -65,7 +65,11 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     target: 'es2022',
-    sourcemap: true,
+    sourcemap: mode !== 'artifact',
     ...(PORTALS[mode] ? { outDir: PORTALS[mode].outDir } : {}),
+    // The playtest page (tools/inline-artifact.mjs): one script, every language bundled in.
+    ...(mode === 'artifact'
+      ? { outDir: 'dist-artifact', rollupOptions: { output: { inlineDynamicImports: true } } }
+      : {}),
   },
 }));
