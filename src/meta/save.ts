@@ -23,6 +23,26 @@ export interface SaveData {
   /** Things shown once: lessons, story pages. */
   seen: Record<string, boolean>;
   settings: { muted: boolean; lang: string | null; reducedMotion: boolean };
+  daily: DailySave;
+}
+
+export interface DailySave {
+  streak: number;
+  bestStreak: number;
+  lastDate: string | null;
+  /** First finish per date (the last 90 days). */
+  results: Record<string, { moves: number; par: number; stars: number }>;
+  /** A trail in progress: leaving and coming back resumes it. */
+  run: DailyRun | null;
+}
+
+export interface DailyRun {
+  date: string;
+  tier: number;
+  /** The floor being played (1-3), the HP and moves it was entered with. */
+  floor: number;
+  hp: number;
+  moves: number;
 }
 
 export function freshSave(): SaveData {
@@ -31,6 +51,7 @@ export function freshSave(): SaveData {
     levels: {},
     seen: {},
     settings: { muted: false, lang: null, reducedMotion: false },
+    daily: { streak: 0, bestStreak: 0, lastDate: null, results: {}, run: null },
   };
 }
 
@@ -45,6 +66,7 @@ export function parseSave(raw: string | null): SaveData {
       levels: { ...d.levels },
       seen: { ...d.seen },
       settings: { ...f.settings, ...d.settings },
+      daily: { ...f.daily, ...d.daily },
     };
   } catch {
     return freshSave();

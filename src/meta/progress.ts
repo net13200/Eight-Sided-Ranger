@@ -55,3 +55,17 @@ export function continueIndex(levels: readonly Level[], save: SaveData): number 
   const i = levels.findIndex((l, k) => open[k] && !isCompleted(save, l));
   return i >= 0 ? i : Math.max(0, levels.length - 1);
 }
+
+/** Districts a player has reached: the one holding their furthest open level. */
+export function districtsReached(levels: readonly Level[], save: SaveData): number {
+  const open = unlockedLevels(levels, save);
+  return Math.floor(Math.max(0, open.lastIndexOf(true)) / 10) + 1;
+}
+
+/** The Daily Trail opens once the Edgewood (the first ten levels) is beaten. */
+export const DAILY_OPENS_AFTER = 10;
+
+export function dailyOpen(levels: readonly Level[], save: SaveData): boolean {
+  const gate = levels[DAILY_OPENS_AFTER - 1];
+  return !!gate && !!save.levels[gate.id];
+}

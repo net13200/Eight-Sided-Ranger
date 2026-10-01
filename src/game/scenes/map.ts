@@ -7,9 +7,11 @@
  * by stone. Roads ahead show as faint stones.
  */
 import { t } from '../../i18n';
+import { currentStreak, utcDate } from '../../meta/daily';
 import {
   DISTRICT_NAMES,
   continueIndex,
+  dailyOpen,
   isCompleted,
   needsRedo,
   unlockedLevels,
@@ -66,6 +68,9 @@ function hash(c: number, r: number): number {
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 
+/** The die's spot when it stands at the Daily Trail's notice board (by level 1). */
+export const DAILY_SPOT = -1;
+
 const center = (p: Pos) => ({ x: p.c * TILE + TILE / 2, y: p.r * TILE + TILE / 2 });
 
 export class MapScene implements Scene {
@@ -77,6 +82,9 @@ export class MapScene implements Scene {
   private readonly reserved = new Set<string>();
   /** The pedestal the die is on (or hopping toward the end of `path`). */
   private at: number;
+  private readonly daily: Pos;
+  private readonly dailyStone: Pos;
+  private lineCache: Pos[] | null = null;
   private path: Pos[] = [];
   private hop: { from: Pos; to: Pos; t: number } | null = null;
   private time = 0;
@@ -109,7 +117,14 @@ export class MapScene implements Scene {
     const save = game.save.data;
     this.world = buildWorld(levels.length);
     this.unlocked = unlockedLevels(levels, save);
-    this.at = Math.min(at ?? continueIndex(levels, save), levels.length - 1);
+    this.at =
+      at === DAILY_SPOT ? at : Math.min(at ?? continueIndex(levels, save), levels.length - 1);
+    const first = this.world.pedestals[0]!;
+    this.daily = { c: first.c + 2, r: first.r };
+    this.dailyStone = { c: first.c + 1, r: first.r };
+    for (const p of [this.daily, this.dailyStone])
+      for (let dc = -1; dc <= 1; dc++)
+        for (let dr = -1; dr <= 1; dr++) this.reserved.add(key({ c: p.c + dc, r: p.r + dr }));
     for (const p of [...this.world.pedestals, ...this.world.segments.flat()])
       for (let dc = -1; dc <= 1; dc++)
         for (let dr = -1; dr <= 1; dr++) this.reserved.add(key({ c: p.c + dc, r: p.r + dr }));
@@ -133,7 +148,7 @@ export class MapScene implements Scene {
   }
 
   private dieXY(): { x: number; y: number; lift: number } {
-    if (!this.hop) return { ...center(this.world.pedestals[this.at]!), lift: 0 };
+    if (!this.hop) return { ...center(this.posOf(this.at)), lift: 0 };
     const a = center(this.hop.from);
     const b = center(this.hop.to);
     const k = Math.min(1, this.hop.t);
@@ -142,6 +157,32 @@ export class MapScene implements Scene {
       y: a.y + (b.y - a.y) * k,
       lift: Math.sin(Math.PI * k) * 7,
     };
+  }
+
+  private posOf(at: number): Pos {
+    return at === DAILY_SPOT ? this.daily : this.world.pedestals[at]!;
+  }
+
+  /** The road from one spot to another (a level or the notice board), stone by stone. */
+  /**
+   * The whole road as one line: the notice board, its stone, then level 1 up
+   * to the last level. Any trip is a stretch of it, so the die can change
+   * course in the middle of a hop.
+   */
+  private get line(): Pos[] {
+    return (this.lineCache ??= [
+      this.daily,
+      this.dailyStone,
+      ...roadBetween(this.world, 0, this.world.pedestals.length - 1),
+    ]);
+  }
+
+  /** The stretch of road from `from` to spot `to` (both included). */
+  private road(from: Pos, to: number): Pos[] {
+    const k = (p: Pos) => this.line.findIndex((q) => q.c === p.c && q.r === p.r);
+    const a = k(from);
+    const b = k(this.posOf(to));
+    return a <= b ? this.line.slice(a, b + 1) : this.line.slice(b, a + 1).reverse();
   }
 
   /** The camera that keeps the die a little below the middle. */
@@ -203,6 +244,14 @@ export class MapScene implements Scene {
       this.spots.push({ pos: this.world.pedestals[i]!, el: b });
       ui.append(b);
     });
+    const board = el('button', {
+      className: 'map-spot',
+      testId: 'landmark-daily',
+      label: t('Daily Trail'),
+      onClick: () => this.goTo(DAILY_SPOT),
+    });
+    this.spots.push({ pos: this.daily, el: board });
+    ui.append(board);
     this.playBtn = el('button', {
       className: 'btn primary',
       testId: 'map-play',
@@ -227,26 +276,20 @@ export class MapScene implements Scene {
 
   private play(): void {
     const i = this.selected();
-    if (i !== null) this.game.goPlay(i);
+    if (i === DAILY_SPOT) this.game.goDaily();
+    else if (i !== null) this.game.goPlay(i);
   }
 
   /** Hops along the road to level i. */
   private goTo(i: number): void {
-    if (this.lay || !this.unlocked[i]) return;
-    const from = this.hop ? this.indexAt(this.hop.to) : this.at;
-    if (from === null) return;
-    const road = roadBetween(this.world, from, i);
+    if (this.lay || (i !== DAILY_SPOT && !this.unlocked[i])) return;
+    const road = this.road(this.hop ? this.hop.to : this.posOf(this.at), i);
     this.path = road.slice(1);
     this.at = i;
     this.camTarget = null;
     this.fling = 0;
     if (!this.hop) this.nextHop(road[0]!);
     this.syncCard();
-  }
-
-  private indexAt(p: Pos): number | null {
-    const i = this.world.pedestals.findIndex((q) => q.c === p.c && q.r === p.r);
-    return i >= 0 ? i : null;
   }
 
   private nextHop(from: Pos): void {
@@ -261,6 +304,10 @@ export class MapScene implements Scene {
 
   private arrive(): void {
     this.syncCard();
+    if (this.at === DAILY_SPOT) {
+      this.say(t('Daily Trail'));
+      return;
+    }
     const level = this.game.levels[this.at]!;
     this.say(t('Level {n}: {name}', { n: this.at + 1, name: t(level.name) }));
   }
@@ -273,14 +320,16 @@ export class MapScene implements Scene {
       if (cmd.swipe) return;
       const step = cmd.dir === 'N' || cmd.dir === 'E' ? 1 : -1;
       const i = this.at + step;
-      if (i >= 0 && i < this.unlocked.length && this.unlocked[i]) this.goTo(i);
+      // Left from level 1 is the notice board.
+      if (i === DAILY_SPOT || (i >= 0 && i < this.unlocked.length && this.unlocked[i]))
+        this.goTo(i);
       else this.game.audio.play('bump');
     } else if (cmd.type === 'tap') {
       if (cmd.y < HUD_H || cmd.y >= CARD_Y || this.dragged) return;
       // The open level nearest the tap.
       const x = cmd.x - XOFF;
       const y = cmd.y - HUD_H + this.camY;
-      let best = -1;
+      let best = -2;
       let bestD = Infinity;
       this.world.pedestals.forEach((p, i) => {
         if (!this.unlocked[i]) return;
@@ -288,7 +337,9 @@ export class MapScene implements Scene {
         const d = Math.hypot(c.x - x, c.y - y);
         if (d < bestD) [best, bestD] = [i, d];
       });
-      if (best >= 0) this.goTo(best);
+      const b = center(this.daily);
+      if (Math.hypot(b.x - x, b.y - y) < bestD) best = DAILY_SPOT;
+      if (best !== -2) this.goTo(best);
     }
   }
 
@@ -350,7 +401,13 @@ export class MapScene implements Scene {
   }
 
   private syncCard(): void {
-    if (this.playBtn) this.playBtn.disabled = this.selected() === null;
+    if (!this.playBtn) return;
+    const i = this.selected();
+    this.playBtn.disabled = i === null;
+    this.playBtn.replaceChildren(
+      icon('play'),
+      el('span', { text: t(i === DAILY_SPOT ? 'Open' : 'Play') }),
+    );
   }
 
   /** Dragging scrolls the map (from anywhere in the view, a level included), and so does the wheel. */
@@ -446,6 +503,7 @@ export class MapScene implements Scene {
     this.drawGround(ctx, r0, r1);
     this.drawRoad(ctx, r0, r1);
     this.drawPedestals(ctx, r0, r1);
+    if (this.daily.r >= r0 - 1 && this.daily.r <= r1 + 1) this.drawBoard(ctx);
     this.drawDie(ctx);
     ctx.restore();
     this.drawHud(ctx);
@@ -594,6 +652,7 @@ export class MapScene implements Scene {
   }
 
   private drawRoad(ctx: CanvasRenderingContext2D, r0: number, r1: number): void {
+    if (this.dailyStone.r >= r0 && this.dailyStone.r <= r1) this.stone(ctx, this.dailyStone);
     // The road from Oddmere's gate to the first level.
     const first = this.world.pedestals[0];
     if (first)
@@ -687,6 +746,43 @@ export class MapScene implements Scene {
     });
   }
 
+  /** The Daily Trail's notice board: a parchment on two posts (a lock until it opens). */
+  private drawBoard(ctx: CanvasRenderingContext2D): void {
+    const { x, y } = center(this.daily);
+    const open = dailyOpen(this.game.levels, this.game.save.data);
+    ctx.fillStyle = '#5a3b1f';
+    ctx.fillRect(x - 12, y - 8, 4, 22);
+    ctx.fillRect(x + 8, y - 8, 4, 22);
+    ctx.fillStyle = '#8a5a2b';
+    ctx.beginPath();
+    ctx.roundRect(x - 16, y - 18, 32, 22, 3);
+    ctx.fill();
+    ctx.fillStyle = open ? '#efe2c0' : '#b9ad8e';
+    ctx.fillRect(x - 12, y - 15, 24, 16);
+    ctx.fillStyle = '#6e5233';
+    ctx.fillRect(x - 8, y - 11, 16, 2);
+    ctx.fillRect(x - 8, y - 7, 12, 2);
+    ctx.fillRect(x - 8, y - 3, 14, 2);
+    if (!open) {
+      ctx.fillStyle = '#3a2614';
+      ctx.beginPath();
+      ctx.roundRect(x - 5, y - 8, 10, 8, 2);
+      ctx.fill();
+      ctx.strokeStyle = '#3a2614';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.arc(x, y - 8, 3, Math.PI, 0);
+      ctx.stroke();
+    } else if (!this.game.save.data.daily.results[utcDate(this.game.platform.now())]) {
+      // Today's trail is waiting: a small glow.
+      const pulse = this.game.reducedMotion ? 0.5 : 0.5 + 0.5 * Math.sin(this.time * 4);
+      ctx.fillStyle = `rgba(255,215,94,${0.6 + 0.4 * pulse})`;
+      ctx.beginPath();
+      ctx.arc(x + 14, y - 18, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
   private drawDie(ctx: CanvasRenderingContext2D): void {
     const { x, y, lift } = this.dieXY();
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
@@ -745,6 +841,10 @@ export class MapScene implements Scene {
     ctx.fillStyle = '#2c4433';
     ctx.fillRect(0, CARD_Y, 340, 1);
     const i = this.selected() ?? this.at;
+    if (i === DAILY_SPOT) {
+      this.drawDailyCard(ctx);
+      return;
+    }
     const level = this.game.levels[i]!;
     const save = this.game.save.data;
     const rec = save.levels[level.id];
@@ -776,6 +876,28 @@ export class MapScene implements Scene {
     ctx.fillText(sub, 56, CARD_Y + 37, 210);
     const stars = done ? (rec?.stars ?? 0) : 0;
     for (let s = 0; s < 3; s++) drawStar(ctx, 284 + s * 19, CARD_Y + 28, 7, s < stars);
+  }
+
+  private drawDailyCard(ctx: CanvasRenderingContext2D): void {
+    const save = this.game.save.data;
+    const date = utcDate(this.game.platform.now());
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = C.gold;
+    ctx.font = '800 16px system-ui, sans-serif';
+    ctx.fillText(t('Daily Trail'), 12, CARD_Y + 20, 316);
+    ctx.fillStyle = C.textDim;
+    ctx.font = '11px system-ui, sans-serif';
+    const done = save.daily.results[date];
+    const sub = !dailyOpen(this.game.levels, save)
+      ? t('Three new floors every day. Opens after the Edgewood.')
+      : done
+        ? t('Done today: {n} moves. Streak: {s} days.', {
+            n: done.moves,
+            s: currentStreak(save, date),
+          })
+        : t('Three new floors today, the same for everyone.');
+    wrap(ctx, sub, 12, CARD_Y + 38, 316, 13);
   }
 
   /** Wide screens: the district's progress on the left, controls on the right. */
@@ -996,7 +1118,15 @@ function leaves(ctx: Ctx): void {
   }
 }
 
-export function drawStar(ctx: Ctx, cx: number, cy: number, r: number, filled: boolean): void {
+export function drawStar(
+  ctx: Ctx,
+  cx: number,
+  cy: number,
+  r: number,
+  filled: boolean,
+  /** On a light ground (parchment): empty stars are drawn in ink. */
+  light = false,
+): void {
   ctx.beginPath();
   for (let i = 0; i < 10; i++) {
     const a = -Math.PI / 2 + (i * Math.PI) / 5;
@@ -1004,10 +1134,10 @@ export function drawStar(ctx: Ctx, cx: number, cy: number, r: number, filled: bo
     ctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
   }
   ctx.closePath();
-  ctx.fillStyle = filled ? '#ffd75e' : 'rgba(255,255,255,0.1)';
+  ctx.fillStyle = filled ? '#ffd75e' : light ? 'rgba(58,38,20,0.08)' : 'rgba(255,255,255,0.1)';
   ctx.fill();
   ctx.lineWidth = Math.max(1.2, r * 0.12);
-  ctx.strokeStyle = filled ? '#8a6414' : 'rgba(255,255,255,0.3)';
+  ctx.strokeStyle = filled ? '#8a6414' : light ? 'rgba(58,38,20,0.45)' : 'rgba(255,255,255,0.3)';
   ctx.stroke();
 }
 

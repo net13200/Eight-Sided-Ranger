@@ -11,9 +11,9 @@ import {
   step,
   type Dir,
   type GameEvent,
+  type Level,
   type State,
 } from '../../engine';
-import { fingerprint } from '../../meta/progress';
 import { FACE_INFO, LESSONS } from '../lessons';
 import {
   placeBoard,
@@ -26,8 +26,9 @@ import {
   type Pt,
 } from '../view/board';
 import type { Game } from '../game';
+import type { PlayMode, WinPanel } from '../play-mode';
 import type { Command } from '../input';
-import { starsFor, twoStarLimit } from '../stars';
+import { twoStarLimit } from '../stars';
 import { drawControls, sideCard, touchFirst, wrap } from '../view/backdrop';
 import { el, iconButton, place } from '../ui';
 import { muteButton } from './common';
@@ -72,10 +73,16 @@ export class PlayScene implements Scene {
 
   constructor(
     private readonly game: Game,
-    readonly index: number,
+    level: Level,
+    readonly mode: PlayMode,
   ) {
-    this.state = startState(game.levels[index]!);
+    this.state = startState(level);
     placeBoard(this.level.width, this.level.height);
+  }
+
+  /** Moves for the HUD and stars: a run counts the earlier floors too. */
+  private get moves(): number {
+    return this.mode.movesBefore + this.state.moves;
   }
 
   private get level() {
@@ -116,7 +123,7 @@ export class PlayScene implements Scene {
       ),
       place(muteButton(this.game), 272, y, 64, 62),
     );
-    const lesson = LESSONS[this.level.id];
+    const lesson = this.mode.lessons ? LESSONS[this.level.id] : undefined;
     if (lesson && !this.game.save.data.seen[`lesson:${this.level.id}`]) {
       this.lesson = new LessonCard(
         lesson,
@@ -146,8 +153,8 @@ export class PlayScene implements Scene {
       return;
     }
     if (this.finished) {
-      if (cmd.type === 'confirm') this.next();
-      else if (cmd.type === 'back') this.game.goMap(this.index);
+      if (cmd.type === 'confirm') this.result?.next.go();
+      else if (cmd.type === 'back') this.mode.back();
       return;
     }
     switch (cmd.type) {
@@ -186,7 +193,7 @@ export class PlayScene implements Scene {
         this.openInfo();
         break;
       case 'back':
-        this.game.goMap(this.index);
+        this.mode.back();
         break;
     }
   }
@@ -246,69 +253,83 @@ export class PlayScene implements Scene {
     this.game.audio.play(sound);
   }
 
+  private result: WinPanel | null = null;
+
   private win(): void {
     this.finished = true;
-    const moves = this.state.moves;
-    const stars = starsFor(moves, this.level.par);
-    this.game.save.recordWin(this.level.id, fingerprint(this.level), moves, stars);
+    this.result = this.mode.won(this.level, this.state.moves, this.state.hp);
     this.game.audio.play('win');
-    setTimeout(() => this.showPanel(true, stars), this.game.reducedMotion ? 0 : 450);
+    setTimeout(() => this.showPanel(true), this.game.reducedMotion ? 0 : 450);
   }
 
-  private get isLast(): boolean {
-    return this.index + 1 >= this.game.levels.length;
-  }
-
-  private next(): void {
-    if (this.isLast) this.game.goMap(this.index);
-    else this.game.goPlay(this.index + 1);
-  }
-
-  private showPanel(won: boolean, stars = 0): void {
+  private showPanel(won: boolean): void {
     if (!this.ui || this.panel) return;
     this.finished = won;
-    const body = won
-      ? [
-          el('h2', { text: t('{name}: done!', { name: t(this.level.name) }) }),
-          el('p', {
-            text: t('{n} moves (par {par}).', { n: this.state.moves, par: this.level.par ?? 0 }),
-          }),
-          el('div', {
-            className: 'stars-row',
-            testId: 'stars',
-            text: '★'.repeat(stars) + '☆'.repeat(3 - stars),
-          }),
-          el('div', { className: 'row' }, [
-            el('button', {
-              className: 'btn primary',
-              testId: 'next',
-              text: t('Next level'),
-              onClick: () => this.next(),
-            }),
-          ]),
-          el('div', { className: 'row' }, [
-            el('button', {
-              className: 'btn small',
-              testId: 'again',
-              text: t('Again'),
-              onClick: () => this.game.goPlay(this.index),
-            }),
-            el('button', {
-              className: 'btn small',
-              testId: 'to-map',
-              text: t('Map'),
-              onClick: () => this.game.goMap(this.index),
-            }),
-          ]),
-        ]
-      : [
-          el('h2', { text: t('Knocked out!') }),
-          el('p', { text: t('Undo a move or try again.') }),
-          el('div', { className: 'row' }, [
-            iconButton('undo', t('Undo'), () => this.command({ type: 'undo' }), 'overlay-undo'),
-            iconButton('retry', t('Retry'), () => this.command({ type: 'retry' }), 'overlay-retry'),
-          ]),
-        ];
+    const r = this.result;
+    const body =
+      won && r
+        ? [
+            el('h2', { text: r.title }),
+            el('p', { text: r.text }),
+            ...(r.stars !== null
+              ? [
+                  el('div', {
+                    className: 'stars-row',
+                    testId: 'stars',
+                    text: '★'.repeat(r.stars) + '☆'.repeat(3 - r.stars),
+                  }),
+                ]
+              : []),
+            el('div', { className: 'row' }, [
+              el('button', {
+                className: 'btn primary',
+                testId: 'next',
+                text: r.next.label,
+                onClick: () => r.next.go(),
+              }),
+            ]),
+            el('div', { className: 'row' }, [
+              ...(r.again
+                ? [
+                    el('button', {
+                      className: 'btn small',
+                      testId: 'again',
+                      text: t('Again'),
+                      onClick: () => r.again?.(),
+                    }),
+                  ]
+                : []),
+              ...(r.share
+                ? [
+                    el('button', {
+                      className: 'btn small',
+                      testId: 'share',
+                      text: t('Share'),
+                      onClick: () => r.share?.(),
+                    }),
+                  ]
+                : []),
+              el('button', {
+                className: 'btn small',
+                testId: 'to-map',
+                text: t('Map'),
+                onClick: () => this.mode.back(),
+              }),
+            ]),
+          ]
+        : [
+            el('h2', { text: t('Knocked out!') }),
+            el('p', { text: t('Undo a move or try again.') }),
+            el('div', { className: 'row' }, [
+              iconButton('undo', t('Undo'), () => this.command({ type: 'undo' }), 'overlay-undo'),
+              iconButton(
+                'retry',
+                t('Retry'),
+                () => this.command({ type: 'retry' }),
+                'overlay-retry',
+              ),
+            ]),
+          ];
     this.panel = place(
       el('div', { className: 'overlay', testId: won ? 'won' : 'fail-overlay' }, body),
       40,
@@ -376,7 +397,7 @@ export class PlayScene implements Scene {
     ctx.save();
     ctx.translate(0, (h - cardH) / 2);
     if (side === 'left') {
-      let y = sideCard(ctx, w, cardH, t('The Edgewood'));
+      let y = sideCard(ctx, w, cardH, this.mode.heading());
       ctx.fillStyle = C.text;
       ctx.font = '800 20px system-ui, sans-serif';
       ctx.textAlign = 'left';
@@ -386,9 +407,9 @@ export class PlayScene implements Scene {
       ctx.fillText(t('Moves'), 16, y + 14);
       ctx.fillStyle = C.text;
       ctx.font = '800 34px system-ui, sans-serif';
-      ctx.fillText(String(this.state.moves), 16, y + 44);
+      ctx.fillText(String(this.moves), 16, y + 44);
       y += 78;
-      const par = this.level.par ?? 0;
+      const par = this.mode.par ?? 0;
       ctx.font = '13px system-ui, sans-serif';
       ctx.fillStyle = C.textDim;
       wrap(
@@ -461,7 +482,7 @@ export class PlayScene implements Scene {
       ctx.fillStyle = `rgba(255,60,60,${this.hurtT * 0.25})`;
       ctx.fillRect(0, 0, 340, 480);
     }
-    drawHud(ctx, this.index, s);
+    drawHud(ctx, this.mode.title(this.level), this.moves, this.mode.par, s.hp);
     if (this.level.hint && s.moves < 3 && !this.lesson) drawHint(ctx, this.level.hint, s.moves);
     if (this.lesson) {
       ctx.fillStyle = 'rgba(10,8,16,0.6)';
@@ -505,25 +526,31 @@ function drawFlash(ctx: CanvasRenderingContext2D, f: Flash): void {
   ctx.restore();
 }
 
-function drawHud(ctx: CanvasRenderingContext2D, index: number, s: State): void {
+function drawHud(
+  ctx: CanvasRenderingContext2D,
+  title: string,
+  moves: number,
+  par: number | undefined,
+  hp: number,
+): void {
   ctx.fillStyle = 'rgba(10,20,14,0.85)';
   ctx.fillRect(0, 0, 340, 50);
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'left';
   ctx.fillStyle = C.text;
   ctx.font = 'bold 15px system-ui, sans-serif';
-  ctx.fillText(t('{n}. {name}', { n: index + 1, name: t(s.level.name) }), 12, 16, 260);
+  ctx.fillText(title, 12, 16, 260);
   ctx.font = '12px system-ui, sans-serif';
   ctx.fillStyle = C.textDim;
   ctx.fillText(
-    s.level.par !== undefined
-      ? t('Moves {n} / par {par}', { n: s.moves, par: s.level.par })
-      : t('Moves {n}', { n: s.moves }),
+    par !== undefined
+      ? t('Moves {n} / par {par}', { n: moves, par })
+      : t('Moves {n}', { n: moves }),
     12,
     35,
     200,
   );
-  for (let i = 0; i < 3; i++) drawHeart(ctx, 328 - (3 - i) * 18 + 8, 18, 14, i < s.hp);
+  for (let i = 0; i < 3; i++) drawHeart(ctx, 328 - (3 - i) * 18 + 8, 18, 14, i < hp);
 }
 
 function drawHint(ctx: CanvasRenderingContext2D, en: string, moves: number): void {
