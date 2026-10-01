@@ -1,0 +1,12 @@
+id: 1-07
+name: Knife or Bow
+par: 12
+hint: Knife up close, Bow from afar
+loadout: Leaf Leaf Bow Leaf Knife Leaf Leaf Leaf
+teaches: knife,bow
+---
+......~..
+.......@.
+.....w~w~
+.........
+.>.......

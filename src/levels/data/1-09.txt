@@ -1,0 +1,14 @@
+id: 1-09
+name: Thicket
+par: 17
+hint: Mend first, then shoot
+hp: 2
+loadout: Leaf Knife Leaf Herb Leaf Leaf Bow Leaf
+teaches: bow,herb
+---
+@.....~..
+~..~..w..
+.#.~.+...
+.w..~....
+.........
+....>....

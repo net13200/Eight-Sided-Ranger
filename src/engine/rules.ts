@@ -63,6 +63,8 @@ export interface Level {
   readonly par?: number;
   readonly hint?: string;
   readonly teaches?: readonly string[];
+  /** Starting HP, if not full (the Ranger arrives hurt). */
+  readonly hp?: number;
 }
 
 export interface State {
@@ -88,7 +90,7 @@ export function startState(level: Level): State {
     x: level.start.x,
     y: level.start.y,
     orient: 0,
-    hp: MAX_HP,
+    hp: level.hp ?? MAX_HP,
     enemies: level.enemies.map((e, i) => ({ ...e, id: i + 1, snared: 0 })),
     moves: 0,
     status: 'playing',

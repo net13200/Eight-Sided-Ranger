@@ -1,0 +1,11 @@
+id: 1-08
+name: The Spring
+par: 7
+hint: Herb face-down on the spring
+hp: 1
+loadout: Leaf Leaf Leaf Herb Leaf Leaf Leaf Leaf
+teaches: herb
+---
+....#>.
+.......
+..@+w..

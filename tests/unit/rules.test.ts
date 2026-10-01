@@ -111,6 +111,19 @@ describe('rules', () => {
     expect(s.moves).toBe(2);
   });
 
+  it('a level can start the Ranger hurt; Herb on a spring heals', () => {
+    const lv = parseLevel(
+      'id: t\nname: T\nhp: 1\nloadout: Leaf Leaf Leaf Herb Leaf Leaf Leaf Leaf\n---\n@+.',
+    );
+    let s = startState(lv);
+    expect(s.hp).toBe(1);
+    s = play(s, 'E'); // Herb (right slot) lands face-down on the spring
+    expect(s.hp).toBe(2);
+    expect(() =>
+      parseLevel('id: t\nname: T\nhp: 4\nloadout: ' + 'Leaf '.repeat(8) + '\n---\n@.'),
+    ).toThrow();
+  });
+
   it('the Bow shoots along the row, over water; a wolf takes two arrows', () => {
     let s = LV('@.~~.w.#', facing('Bow'));
     s = play(s, 'E');

@@ -15,7 +15,7 @@ import {
 } from '../../engine';
 import { FACE_INFO, LESSONS } from '../lessons';
 import {
-  ORIGIN,
+  placeBoard,
   center,
   cellAt,
   dirTo,
@@ -74,6 +74,7 @@ export class PlayScene implements Scene {
     readonly index: number,
   ) {
     this.state = startState(game.levels[index]!);
+    placeBoard(this.level.width, this.level.height);
   }
 
   private get level() {
@@ -462,7 +463,7 @@ export class PlayScene implements Scene {
     if (this.level.hint && s.moves < 3 && !this.lesson) drawHint(ctx, this.level.hint, s.moves);
     if (this.lesson) {
       ctx.fillStyle = 'rgba(10,8,16,0.6)';
-      ctx.fillRect(0, ORIGIN.y - 8, 340, BAR_Y - ORIGIN.y + 8);
+      ctx.fillRect(0, 50, 340, BAR_Y - 50);
     }
   }
 }

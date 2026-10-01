@@ -3,7 +3,7 @@
  * loadout, teaches), `---`, then the grid, one character per triangle.
  */
 import { isUp, type Pos } from './grid';
-import { ENEMY_HP, TILE_GLYPH, type Enemy, type Level, type Tile } from './rules';
+import { ENEMY_HP, MAX_HP, TILE_GLYPH, type Enemy, type Level, type Tile } from './rules';
 
 /**
  * Level text format: `key: value` lines, `---`, then the
@@ -54,6 +54,14 @@ export function parseLevel(text: string): Level {
     loadout,
     ...(meta.par ? { par: Number(meta.par) } : {}),
     ...(meta.hint ? { hint: meta.hint } : {}),
+    ...(meta.hp ? { hp: hpValue(meta.hp, meta.id) } : {}),
     ...(meta.teaches ? { teaches: meta.teaches.split(/[\s,]+/).filter(Boolean) } : {}),
   };
+}
+
+function hpValue(v: string, id: string | undefined): number {
+  const hp = Number(v);
+  if (!Number.isInteger(hp) || hp < 1 || hp > MAX_HP)
+    throw new Error(`Level ${id}: hp must be 1-${MAX_HP}`);
+  return hp;
 }

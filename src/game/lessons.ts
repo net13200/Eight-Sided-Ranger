@@ -7,40 +7,28 @@ export interface Lesson {
 }
 
 export const LESSONS: Readonly<Record<string, Lesson>> = {
-  'r-01': {
+  '1-01': {
     title: tk('Three ways to roll'),
     text: tk(
       'You are a d8, rolling on triangles. Every triangle has three edges, so there are three ways to roll: left, right, and through the flat edge (down from a triangle that points up, up from one that points down). The badges show which face leads each way.',
     ),
   },
-  'r-02': {
+  '1-03': {
     title: tk('The Bow'),
     text: tk(
       'Rows are straight lines. Roll the Bow toward a wolf in your row and the arrow flies to it, over water, without you moving. A wolf takes two arrows.',
     ),
   },
-  'r-03': {
+  '1-06': {
     title: tk('The Knife'),
     text: tk(
       'Up close, the Knife ends a wolf in one stab. Wolves bite when they reach you, and you have 3 HP.',
     ),
   },
-  'r-04': {
-    title: tk('The Trap'),
+  '1-08': {
+    title: tk('The Herb'),
     text: tk(
-      'Land with the Trap face-down to lay a snare. A wolf that steps in is caught for 3 turns.',
-    ),
-  },
-  'r-05': {
-    title: tk('Rope and Boots'),
-    text: tk(
-      'Boots leap over the next triangle in your row: grass, water, even a wolf. The Rope swings you along the row to a post, and the die doesn’t roll on the way.',
-    ),
-  },
-  'r-06': {
-    title: tk('The Cloak'),
-    text: tk(
-      'With the Cloak on top, nobody can see you: wolves stop hunting and stags hold still.',
+      'You took a bite at the border, and the hearts show it. Land with the Herb face-down on a spring to heal 1. Springs never run dry.',
     ),
   },
 };

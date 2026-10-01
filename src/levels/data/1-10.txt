@@ -1,0 +1,13 @@
+id: 1-10
+name: The Border Stone
+par: 17
+hint: Heal, then face the wolves
+hp: 1
+loadout: Leaf Herb Bow Leaf Knife Leaf Leaf Leaf
+teaches: knife,herb
+---
+@.~......
+...#w....
+...~.....
+#..#.....
+..+..>.w.

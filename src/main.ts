@@ -3,6 +3,7 @@ import { Game } from './game/game';
 import { bindInput } from './game/input';
 import { Loop } from './game/loop';
 import { autoFitLabels } from './game/ui';
+import { center } from './game/view/board';
 import { Stage } from './game/view/stage';
 import { loadLang } from './i18n';
 import { createBrowserPlatform } from './platform/browser';
@@ -29,6 +30,9 @@ bindInput(
   (cmd) => game.command(cmd),
   () => game.audio.unlock(),
 );
+// The board's focus ring is for keyboard players only.
+window.addEventListener('keydown', () => document.body.classList.add('kbd'), true);
+window.addEventListener('pointerdown', () => document.body.classList.remove('kbd'), true);
 for (const t of ['pointerdown', 'touchend', 'click', 'keydown'] as const)
   window.addEventListener(t, () => game.audio.unlock(), true);
 window.addEventListener('pageshow', () => game.audio.resume());
@@ -59,6 +63,8 @@ if (devTools)
   window.__esr = {
     version: VERSION_LABEL,
     scene: () => game.scene?.name,
+    /** A board cell's centre, in logical stage units (for tests that tap the board). */
+    cellCenter: (x: number, y: number) => center(x, y),
     state: () =>
       game.scene && 'state' in game.scene ? (game.scene as { state: unknown }).state : null,
   };

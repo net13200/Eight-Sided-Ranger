@@ -1,0 +1,11 @@
+id: 1-02
+name: The Valley
+par: 14
+hint: Up is through the flat edge too
+loadout: Leaf Leaf Leaf Leaf Leaf Leaf Leaf Leaf
+teaches: roll
+---
+@..#####>
+#...###..
+##...#..#
+###....##

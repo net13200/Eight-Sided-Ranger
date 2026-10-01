@@ -16,6 +16,11 @@ describe('levels', () => {
     expect(new Set(levels.map((l) => l.id)).size).toBe(levels.length);
   });
 
+  it('every board fits the stage (9 triangles across, 6 rows)', () => {
+    for (const lv of levels)
+      expect([lv.id, lv.width <= 9 && lv.height <= 6]).toEqual([lv.id, true]);
+  });
+
   const taught = new Set<string>(['Leaf']);
   for (const lv of levels) {
     for (const t of lv.teaches ?? [])

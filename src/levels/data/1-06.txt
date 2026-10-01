@@ -1,4 +1,4 @@
-id: r-03
+id: 1-06
 name: Close Quarters
 par: 11
 hint: The Knife ends it in one

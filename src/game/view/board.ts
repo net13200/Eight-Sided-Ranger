@@ -26,7 +26,18 @@ type Ctx = CanvasRenderingContext2D;
 /** Triangle side, row height, and the board's top-left corner. */
 export const SIDE = 64;
 export const ROW = (SIDE * Math.sqrt(3)) / 2;
-export const ORIGIN = { x: 10, y: 56 };
+/** The largest board that fits the stage: 9 triangles across, 6 rows. */
+export const MAX_W = 9;
+export const MAX_H = 6;
+/** The area the board is centred in (between the top bar and the hint). */
+const AREA = { x: 10, y: 56, w: 320, h: MAX_H * ROW };
+export const ORIGIN = { x: AREA.x, y: AREA.y };
+
+/** Centres a board of this size (call when a level starts). */
+export function placeBoard(width: number, height: number): void {
+  ORIGIN.x = AREA.x + (AREA.w - ((width + 1) * SIDE) / 2) / 2;
+  ORIGIN.y = AREA.y + (AREA.h - height * ROW) / 2;
+}
 
 export interface Pt {
   x: number;

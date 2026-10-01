@@ -1,0 +1,10 @@
+id: 1-01
+name: The Edge
+par: 7
+hint: Roll down the steps to the gap
+loadout: Leaf Leaf Leaf Leaf Leaf Leaf Leaf Leaf
+teaches: roll
+---
+@..####
+##...##
+###..>#

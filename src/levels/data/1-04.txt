@@ -1,0 +1,12 @@
+id: 1-04
+name: Two Arrows
+par: 9
+hint: A wolf takes two arrows
+loadout: Leaf Leaf Leaf Bow Leaf Leaf Leaf Leaf
+teaches: bow
+---
+....w....
+.....#...
+@....w#..
+.w....>#.
+.....#...

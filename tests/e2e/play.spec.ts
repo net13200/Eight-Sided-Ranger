@@ -2,7 +2,7 @@
 import { expect, test } from '@playwright/test';
 
 test('the lesson card, then the par route wins ★★★', async ({ page }) => {
-  await page.goto('/?level=2');
+  await page.goto('/?level=3');
   await expect(page.getByTestId('lesson')).toBeVisible();
   await page.getByTestId('lesson-ok').click(); // finish typing
   await page.getByTestId('lesson-ok').click(); // close
@@ -22,10 +22,16 @@ test('a tap on a neighbouring triangle rolls there; undo takes it back', async (
   await page.getByTestId('lesson-ok').click();
   const moves = () =>
     page.evaluate(() => (window.__esr as { state(): { moves: number } }).state().moves);
-  // The die starts on the top-left triangle; its right-hand neighbour is at board cell (1, 0).
+  // The die starts on the top-left triangle; tap its right-hand neighbour, cell (1, 0).
+  const p = await page.evaluate(() =>
+    (window.__esr as { cellCenter(x: number, y: number): { x: number; y: number } }).cellCenter(
+      1,
+      0,
+    ),
+  );
   const box = (await page.locator('.stage-canvas').boundingBox())!;
   const k = box.width / 340;
-  await page.mouse.click(box.x + (10 + 32 + 32) * k, box.y + (56 + 18) * k);
+  await page.mouse.click(box.x + p.x * k, box.y + p.y * k);
   await expect.poll(moves).toBe(1);
   await page.getByTestId('undo').click();
   await expect.poll(moves).toBe(0);

@@ -313,7 +313,7 @@ button:focus-visible {
   clip-path: inset(50%);
   white-space: nowrap;
 }
-.stage-canvas:focus-visible {
+.kbd .stage-canvas:focus-visible {
   outline: 2px solid #ffd75e;
   outline-offset: -2px;
 }
