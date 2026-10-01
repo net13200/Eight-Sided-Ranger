@@ -427,3 +427,46 @@ button:focus-visible {
   text-align: center;
   pointer-events: none;
 }
+
+/* Title screen: a mode button with a second line. */
+.btn.mode {
+  flex-direction: column;
+  gap: 1px;
+  font-size: 16px;
+  line-height: 1.15;
+}
+.btn.mode small {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9fb39f;
+}
+.sheet.settings,
+.sheet.how-to {
+  gap: 10px;
+}
+.settings-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.lang-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 60px;
+}
+.lang-row select {
+  min-width: 0;
+  max-width: 60%;
+  height: 60px;
+  padding: 0 8px;
+  border-radius: 10px;
+  border: 1px solid #4f6e55;
+  background: #22382a;
+  color: #f3ead2;
+  font: inherit;
+}

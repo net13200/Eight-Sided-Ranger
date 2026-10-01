@@ -18,7 +18,7 @@ import {
 } from '../../meta/progress';
 import type { Game } from '../game';
 import type { Command } from '../input';
-import { el, icon, place } from '../ui';
+import { el, icon, iconButton, place } from '../ui';
 import { drawControls, sideCard, touchFirst, wrap } from '../view/backdrop';
 import { drawOctahedron } from '../view/board';
 import { C } from '../view/palette';
@@ -35,7 +35,6 @@ import {
   type Pos,
   type WorldLayout,
 } from '../world/layout';
-import { muteButton } from './common';
 import type { Scene } from './scene';
 
 const HUD_H = 56;
@@ -258,7 +257,16 @@ export class MapScene implements Scene {
       onClick: () => this.play(),
     });
     this.playBtn.replaceChildren(icon('play'), el('span', { text: t('Play') }));
-    ui.append(place(this.playBtn, 74, 416, 262, 60), place(muteButton(this.game), 4, 414, 64, 62));
+    ui.append(
+      place(this.playBtn, 74, 416, 262, 60),
+      place(
+        iconButton('back', t('Menu'), () => this.game.goMenu(), 'back'),
+        4,
+        414,
+        64,
+        62,
+      ),
+    );
     this.syncCard();
     this.syncSpots(true);
     if (!this.lay) this.arrive();
@@ -313,6 +321,7 @@ export class MapScene implements Scene {
   }
 
   command(cmd: Command): void {
+    if (cmd.type === 'back') return this.game.goMenu();
     if (this.lay) return;
     if (cmd.type === 'confirm') this.play();
     else if (cmd.type === 'move') {

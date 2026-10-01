@@ -22,9 +22,7 @@ async function open(page: Page, levelsDone: number): Promise<void> {
     }
   }, seed(levelsDone));
   await page.goto('/');
-  await page.getByTestId('landmark-daily').waitFor({ state: 'attached' });
-  // Hop down to the notice board (left of level 1).
-  for (let i = 0; i < levelsDone + 1; i++) await page.keyboard.press('ArrowLeft');
+  await page.getByTestId('daily').click(); // the title screen's Daily Trail: the map, at the board
   await expect(page.getByTestId('map-announcer')).toHaveText('Daily Trail');
   await page.getByTestId('map-play').click();
 }
@@ -69,7 +67,7 @@ test.describe('Daily Trail', () => {
     await page.getByTestId('menu').click(); // leave on floor 2
     await expect(page.getByTestId('daily-start')).toHaveText(/floor 2/);
     await page.reload();
-    for (let i = 0; i < 11; i++) await page.keyboard.press('ArrowLeft');
+    await page.getByTestId('daily').click();
     await page.getByTestId('map-play').click();
     await page.getByTestId('daily-start').click();
     await playFloor(page, 1);

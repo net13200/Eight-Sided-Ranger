@@ -10,8 +10,13 @@ import { Audio } from './audio';
 import type { Command } from './input';
 import { DailyScene } from './scenes/daily';
 import { MapScene } from './scenes/map';
+import { MenuScene } from './scenes/menu';
 import { CampaignMode, type PlayMode } from './play-mode';
 import { PlayScene } from './scenes/play';
+import { StoryScene } from './scenes/story';
+import { storyBeforeLevel, type StoryPage } from './story';
+import { isCompleted } from '../meta/progress';
+import { tk } from '../i18n';
 import type { Scene } from './scenes/scene';
 import { drawBackdrop } from './view/backdrop';
 import type { Stage } from './view/stage';
@@ -61,9 +66,29 @@ export class Game {
     next.enter(this.stage.ui);
   }
 
-  goPlay(index: number): void {
+  /** Plays campaign level `index`, after any story pages due first (the intro, a district's card). */
+  goPlay(index: number, opts: { story?: boolean } = {}): void {
     const i = Math.max(0, Math.min(index, this.levels.length - 1));
-    this.go(new PlayScene(this, this.levels[i]!, new CampaignMode(this, i)));
+    const level = this.levels[i]!;
+    const play = () => this.go(new PlayScene(this, level, new CampaignMode(this, i)));
+    const seen = this.save.data.seen;
+    const due =
+      opts.story === false
+        ? { pages: [], keys: [] }
+        : storyBeforeLevel(i, (k) => !!seen[k], isCompleted(this.save.data, level));
+    if (!due.pages.length) return play();
+    this.goStory(
+      due.pages,
+      () => {
+        this.save.update((d) => due.keys.forEach((k) => (d.seen[k] = true)));
+        play();
+      },
+      tk('Play'),
+    );
+  }
+
+  goStory(pages: readonly StoryPage[], done: () => void, finalLabel?: string): void {
+    this.go(new StoryScene(this, pages, done, finalLabel));
   }
 
   /** Plays any level in any mode (a Daily Trail floor). */
@@ -74,6 +99,10 @@ export class Game {
   /** The map, with the die on level `at` (default: where to pick up). */
   goMap(at?: number): void {
     this.go(new MapScene(this, at));
+  }
+
+  goMenu(): void {
+    this.go(new MenuScene(this));
   }
 
   goDaily(): void {

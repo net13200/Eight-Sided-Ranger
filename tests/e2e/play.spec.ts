@@ -37,8 +37,8 @@ test('a tap on a neighbouring triangle rolls there; undo takes it back', async (
   await expect.poll(moves).toBe(0);
 });
 
-test('every button is at least 44 px, on a level and on the map', async ({ page }) => {
-  for (const url of ['/?level=3', '/']) {
+test('every button is at least 44 px: a level, the title screen, the map', async ({ page }) => {
+  for (const url of ['/?level=3', '/', 'map']) {
     if (url === '/')
       await page.evaluate(() =>
         localStorage.setItem(
@@ -51,7 +51,8 @@ test('every button is at least 44 px, on a level and on the map', async ({ page 
           }),
         ),
       );
-    await page.goto(url);
+    if (url === 'map') await page.getByTestId('play').click();
+    else await page.goto(url);
     await page.waitForTimeout(300);
     for (const b of await page.locator('button:visible').all()) {
       const r = (await b.boundingBox())!;

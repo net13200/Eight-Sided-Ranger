@@ -13,18 +13,25 @@ const scene = (page: Page) => page.evaluate(() => (window.__esr as { scene(): st
 test.describe('map', () => {
   test.skip(({ browserName }) => browserName !== 'chromium');
 
-  test('a first-time player starts in level 1; a returning one on the map', async ({ page }) => {
+  test('a first-time player gets the story, then level 1; a returning one the title screen', async ({
+    page,
+  }) => {
     await page.goto('/');
+    await expect.poll(() => scene(page)).toBe('story');
+    await page.getByTestId('story-skip').click();
     await expect.poll(() => scene(page)).toBe('play');
     const page2 = await page.context().newPage();
     await withSave(page2, seed(3));
     await page2.goto('/');
+    await expect.poll(() => scene(page2)).toBe('menu');
+    await page2.getByTestId('play').click();
     await expect.poll(() => scene(page2)).toBe('map');
   });
 
   test('tap an open level, play it; Map brings you back to it', async ({ page }) => {
     await withSave(page, seed(5));
     await page.goto('/');
+    await page.getByTestId('play').click();
     await expect(page.getByTestId('level-7')).toBeDisabled();
     await page.getByTestId('level-5').click();
     await expect(page.getByTestId('map-announcer')).toHaveText(/Level 5/);
@@ -50,6 +57,7 @@ test.describe('map', () => {
   test('arrow keys hop to the next level; the end of the open road bumps', async ({ page }) => {
     await withSave(page, seed(2));
     await page.goto('/');
+    await page.getByTestId('play').click();
     await page.keyboard.press('ArrowLeft'); // from level 3 to 2
     await expect(page.getByTestId('map-announcer')).toHaveText(/Level 2/);
     await page.keyboard.press('ArrowRight');
@@ -60,6 +68,7 @@ test.describe('map', () => {
   test('a newly opened level: the road lays itself, then the die goes there', async ({ page }) => {
     await withSave(page, seed(4, '--unseen'));
     await page.goto('/');
+    await page.getByTestId('play').click();
     await expect(page.getByTestId('map-play')).toBeDisabled();
     await expect(page.getByTestId('map-announcer')).toHaveText(/Level 5/);
     const seen = await page.evaluate(
@@ -71,6 +80,7 @@ test.describe('map', () => {
   test('dragging the map scrolls it and never presses a level', async ({ page }) => {
     await withSave(page, seed(5));
     await page.goto('/');
+    await page.getByTestId('play').click();
     await expect(page.getByTestId('map-announcer')).toHaveText(/Level 6/);
     const box = (await page.getByTestId('level-5').boundingBox())!;
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
