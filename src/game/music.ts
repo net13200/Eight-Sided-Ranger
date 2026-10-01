@@ -10,11 +10,11 @@
  * - glade:  title screen, map, story. The Knight's "Hall of the Die" in
  *           D dorian, 6/8, on flute over harp arpeggios and the choir.
  * - stones: levels and the Daily Trail. The Knight's "Quiet Stones" in
- *           A minor: slow harp, chimes, the choir, and now and then a few
- *           notes of the title tune on the flute.
+ *           A minor: slow harp, chimes, a warm pad, and now and then the
+ *           title tune's shape on the flute.
  */
 
-export type Voice = 'harp' | 'flute' | 'choir' | 'bass' | 'chime' | 'drum';
+export type Voice = 'harp' | 'flute' | 'choir' | 'pad' | 'bass' | 'chime' | 'drum';
 
 /** [start in steps, MIDI note (0 for drums), length in steps, volume 0..1] */
 export type Note = readonly [number, number, number, number?];
@@ -40,6 +40,12 @@ export interface Track {
   /** Passes before the arrangement repeats exactly. */
   readonly cycle: number;
   readonly parts: readonly Part[];
+  /** The chords, for the harmony test: steps per bar, and each bar's root and third (semitones). */
+  readonly harmony: {
+    readonly bar: number;
+    readonly roots: readonly number[];
+    readonly thirds: readonly number[];
+  };
 }
 
 const hz = (midi: number) => 440 * 2 ** ((midi - 69) / 12);
@@ -151,6 +157,11 @@ const TUNE = [...ornament(HALL_MELODY, D_DORIAN), ...shift(ornament(HALL_ANSWER,
 
 export const GLADE: Track = {
   name: 'Glade',
+  harmony: {
+    bar: 6,
+    roots: HALL_ROOTS,
+    thirds: HALL_ROOTS.map((_, b) => (HALL_MINOR.has(b) || b === 7 ? 3 : 4)),
+  },
   step: 0.24,
   length: 96,
   // Pass 1 doubles the tune on chimes; pass 2 is harp and choir alone; pass 3
@@ -221,27 +232,33 @@ const PUZZLE_BELLS: Note[] = [
   [56, 69, 8],
 ];
 
-/** A few notes of the title tune, as a far-off flute between the chimes. */
+/**
+ * The title tune's rising shape, as a far-off flute in the second half. Every
+ * long note sits on its bar's chord (F, C, Dm, E, Am), ending on G sharp to A.
+ */
 const STONES_FLUTE: Note[] = ornament(
   [
     [72, 69, 2],
-    [74, 74, 1],
-    [75, 76, 3],
-    [80, 72, 2],
-    [82, 71, 6],
-    [104, 76, 2],
-    [106, 74, 1],
-    [107, 72, 3],
-    [112, 69, 8],
+    [74, 72, 1],
+    [75, 77, 3],
+    [80, 76, 2],
+    [82, 72, 6],
+    [104, 77, 2],
+    [106, 76, 1],
+    [107, 74, 3],
+    [112, 71, 4],
+    [116, 68, 3],
+    [120, 69, 7],
   ],
-  A_MINOR,
+  [...A_MINOR, 8],
 );
 
 export const STONES: Track = {
   name: 'Stones',
+  harmony: { bar: 8, roots: PUZZLE_ROOTS, thirds: PUZZLE_QUALITY },
   step: 0.42,
   length: 128,
-  // Pass 0: harp, chimes, choir. Pass 1: harp, choir and the far-off flute.
+  // Pass 0: harp, chimes, pad. Pass 1: harp, pad and the far-off flute.
   // Pass 2: harp and chimes.
   cycle: 3,
   parts: [
@@ -253,9 +270,15 @@ export const STONES: Track = {
       passes: [0, 2],
     },
     {
-      voice: 'choir',
-      gain: 0.16,
-      notes: [...PUZZLE_ROOTS, ...PUZZLE_ROOTS].map((r, bar) => [bar * 8, r, 8] as Note),
+      // A warm pad under the harp: each bar's full chord (the choir sounded
+      // ghostly here, humming bare roots in A minor).
+      voice: 'pad',
+      gain: 0.1,
+      notes: [...PUZZLE_ROOTS, ...PUZZLE_ROOTS].flatMap((r, bar) => [
+        [bar * 8, r - 12, 8] as Note,
+        [bar * 8, r - 12 + PUZZLE_QUALITY[bar % 8]!, 8, 0.7] as Note,
+        [bar * 8, r - 5, 8, 0.6] as Note,
+      ]),
       passes: [0, 1],
     },
     { voice: 'flute', gain: 0.32, notes: STONES_FLUTE, passes: [1] },
@@ -385,6 +408,27 @@ export function playVoice(
       f1.connect(mix);
       f2.connect(mix);
       mix.connect(g).connect(out);
+      break;
+    }
+    case 'pad': {
+      const g = ctx.createGain();
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 700;
+      const oscs = [osc('sawtooth', f, -7), osc('sawtooth', f, 7), osc('triangle', f / 2)];
+      const end = env(
+        g,
+        Math.min(1.2, dur / 3),
+        vol,
+        Math.min(1.5, dur / 3),
+        Math.max(0, dur - 1.6),
+      );
+      for (const o of oscs) {
+        o.connect(lp);
+        o.start(t);
+        o.stop(end);
+      }
+      lp.connect(g).connect(out);
       break;
     }
     case 'bass': {

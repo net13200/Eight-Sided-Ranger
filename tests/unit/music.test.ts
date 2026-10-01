@@ -18,6 +18,23 @@ describe('background music', () => {
       }
     });
 
+    it(`${id}: every held note sits well on its chord (no semitone or tritone rubs)`, () => {
+      const { bar, roots, thirds } = track.harmony;
+      for (const part of track.parts) {
+        if (part.voice === 'drum') continue;
+        for (const [s, m, l] of part.notes) {
+          if (l < 3 || m === 0) continue;
+          const b = Math.floor(s / bar) % roots.length;
+          const r = roots[b]! % 12;
+          const chord = [r, (r + thirds[b]!) % 12, (r + 7) % 12];
+          const pc = m % 12;
+          const rub =
+            !chord.includes(pc) && chord.some((c) => [1, 6, 11].includes((pc - c + 12) % 12));
+          expect(rub, `${id} ${part.voice} note ${m} at step ${s}`).toBe(false);
+        }
+      }
+    });
+
     it(`${id}: never falls silent, even across loop boundaries (feels endless)`, () => {
       const times = noteTimes(track, track.cycle * 2 + 1);
       let gap = 0;
