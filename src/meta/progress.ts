@@ -33,16 +33,15 @@ export function fingerprint(level: Level): string {
   return (h >>> 0).toString(16).padStart(8, '0');
 }
 
-/** Beaten in its current form. */
+/** Beaten in its current form. Wins saved before fingerprints existed count as current. */
 export function isCompleted(save: SaveData, level: Level): boolean {
   const rec = save.levels[level.id];
-  return !!rec && rec.fp === fingerprint(level);
+  return !!rec && (rec.fp === undefined || rec.fp === fingerprint(level));
 }
 
 /** Beaten once, but the level has changed since. */
 export function needsRedo(save: SaveData, level: Level): boolean {
-  const rec = save.levels[level.id];
-  return !!rec && rec.fp !== fingerprint(level);
+  return !!save.levels[level.id] && !isCompleted(save, level);
 }
 
 /** Level i is open once level i-1 has been beaten (in any version). */

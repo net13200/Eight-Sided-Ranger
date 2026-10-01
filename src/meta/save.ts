@@ -13,8 +13,8 @@ export interface LevelRecord {
   stars: number;
   bestMoves: number;
   completions: number;
-  /** The level's fingerprint when it was beaten (see progress.ts). */
-  fp: string;
+  /** The level's fingerprint when it was beaten (see progress.ts); missing in the earliest saves. */
+  fp?: string;
 }
 
 export interface SaveData {

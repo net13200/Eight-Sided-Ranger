@@ -54,6 +54,13 @@ describe('progress', () => {
     expect(isCompleted(save.data, changed)).toBe(true);
   });
 
+  it('a win saved before fingerprints existed still counts', () => {
+    const save = new Save(memory());
+    save.update((d) => (d.levels.a = { stars: 2, bestMoves: 3, completions: 1 }));
+    expect(isCompleted(save.data, levels[0]!)).toBe(true);
+    expect(needsRedo(save.data, levels[0]!)).toBe(false);
+  });
+
   it('a save survives a reload; a broken one starts fresh', () => {
     const store = memory();
     new Save(store).recordWin('a', 'x', 2, 3);
