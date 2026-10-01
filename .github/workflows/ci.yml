@@ -1,0 +1,34 @@
+# Typecheck, lint, format, unit tests, build, size and browser tests on every push and PR.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm run build
+      - run: npm run size
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      # The CrazyGames build (Basic Launch: no SDK), and its zip kept for upload.
+      - run: npm run build:crazygames
+      - run: npm run size -- dist-crazygames
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eight-sided-ranger-crazygames
+          path: eight-sided-ranger-crazygames.zip
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: test-results

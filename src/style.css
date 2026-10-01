@@ -1,0 +1,429 @@
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: #12201a;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+  /* No magnifier or "save image" menu on a long press (iOS). */
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  color: #ece6d6;
+}
+#app {
+  position: fixed;
+  inset: 0;
+}
+.safe-area-probe {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+}
+.stage-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 340px;
+  height: 480px;
+  transform-origin: 0 0;
+  background: #12201a;
+}
+.stage-canvas {
+  position: absolute;
+  inset: 0;
+  width: 340px;
+  height: 480px;
+  touch-action: none;
+}
+.stage-ui {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.stage-ui > * {
+  pointer-events: auto;
+}
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+button:focus-visible {
+  outline: 2px solid #ffd75e;
+  outline-offset: 2px;
+}
+.icon-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 0;
+  border: 1px solid #2c4433;
+  border-radius: 12px;
+  background: #1c3024;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.icon-btn:active {
+  transform: translateY(1px);
+  background: #26402f;
+}
+.icon-btn svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 14px;
+  border: 1px solid #2c4433;
+  background: #1c3024;
+  font-size: 16px;
+  font-weight: 700;
+}
+.btn.primary {
+  background: #ffd75e;
+  border-color: #b8901f;
+  color: #231a05;
+  font-size: 18px;
+  box-shadow: 0 4px 0 #8a6414;
+}
+.btn.primary:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #8a6414;
+}
+.btn svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(14, 26, 19, 0.94);
+  border: 1px solid #4f6e55;
+  text-align: center;
+}
+.overlay h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #ff5a6a;
+}
+.overlay p {
+  margin: 0;
+  font-size: 13px;
+  color: #9fb39f;
+}
+.overlay .row {
+  display: flex;
+  gap: 10px;
+}
+.overlay .icon-btn {
+  width: 72px;
+  height: 52px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn.primary:active,
+  .icon-btn:active {
+    transform: none;
+  }
+}
+.map-spot {
+  position: absolute;
+  /* A drag that starts on a level scrolls the map, not the page. */
+  touch-action: none;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  opacity: 1;
+  cursor: pointer;
+}
+.map-spot:focus-visible {
+  outline: 2px solid #ffd75e;
+  outline-offset: 1px;
+}
+.node {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 3px solid #4f6e55;
+  background: #22382a;
+  font-size: 20px;
+}
+.node.done {
+  border-color: #ffd75e;
+  background: #3a3a1c;
+}
+.node.locked {
+  color: #6f8a74;
+  border-color: #2c4433;
+  background: #17281f;
+  cursor: default;
+}
+.node svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+.sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 18px;
+  background: #17281f;
+  border: 1px solid #4f6e55;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+.sheet h2 {
+  margin: 0;
+  font-size: 20px;
+}
+.sheet .btn {
+  /* 44 px even on the smallest phone in landscape (the stage at 0.75x). */
+  height: 60px;
+  margin-top: auto;
+}
+.toggle {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  cursor: pointer;
+}
+.toggle input {
+  width: 22px;
+  height: 22px;
+  margin: 2px 0 0;
+  accent-color: #ffd75e;
+  flex: none;
+}
+.toggle span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.toggle small,
+.sheet .fine {
+  color: #9fb39f;
+  font-size: 12px;
+  line-height: 1.35;
+  margin: 0;
+}
+.sheet-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sheet-art {
+  width: 64px;
+  height: 64px;
+  flex: none;
+}
+.sheet p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.35;
+}
+.sheet .row {
+  display: flex;
+  gap: 10px;
+  margin-top: auto;
+}
+.sheet .row .btn {
+  flex: 1;
+  margin-top: 0;
+  font-size: 15px;
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.btn.small {
+  font-size: 14px;
+  border-radius: 12px;
+}
+.btn.primary.long {
+  font-size: 16px;
+  white-space: nowrap;
+}
+.node.gauntlet {
+  border-radius: 16px;
+}
+.sheet .toggle strong {
+  font-size: 15px;
+}
+.high-contrast .icon-btn,
+.high-contrast .btn,
+.high-contrast .node,
+.high-contrast .sheet {
+  border-color: #a39cc0;
+}
+.large-labels .icon-btn {
+  font-size: 12px;
+}
+/* Visually hidden but read by screen readers. */
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.stage-canvas:focus-visible {
+  outline: 2px solid #ffd75e;
+  outline-offset: -2px;
+}
+/* Sheets: rows and buttons tall enough to tap when the stage is scaled down. */
+.sheet {
+  overflow-y: auto;
+}
+.sheet .btn {
+  min-height: 52px;
+  flex: none;
+}
+.toggle {
+  min-height: 50px;
+  align-items: center;
+}
+.sheet-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+/* Story pages: text under the illustration. */
+.story-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+  color: #ece6d6;
+  pointer-events: none;
+}
+.story-text strong {
+  color: #ffd75e;
+  font-size: 17px;
+}
+.story-text p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.4;
+}
+.large-labels .story-text p {
+  font-size: 16px;
+  line-height: 1.3;
+}
+
+/* Lesson card over the board: the text types out, play waits for "Got it". */
+.sheet.lesson {
+  gap: 8px;
+  border-color: #ffd75e;
+}
+.lesson-tag {
+  color: #ffd75e;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.sheet.lesson p {
+  font-size: 16px;
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+.large-labels .sheet.lesson p {
+  font-size: 17px;
+}
+.lesson-rest {
+  visibility: hidden;
+}
+.sheet.lesson .btn.waiting {
+  opacity: 0.55;
+}
+
+/* How to play: plain text, scrolls inside the sheet. */
+.sheet.how-to {
+  gap: 8px;
+}
+.how-to-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+.how-to-body h3 {
+  margin: 12px 0 4px;
+  font-size: 15px;
+  color: #ffd75e;
+}
+.how-to-body h3:first-child {
+  margin-top: 0;
+}
+.how-to-body p {
+  margin: 0 0 6px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.sheet.how-to .btn {
+  flex: none;
+}
+
+/* A short message over the board (fades by itself). */
+.toast {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: rgba(14, 26, 19, 0.92);
+  color: var(--text, #f3ead2);
+  font-size: 13px;
+  text-align: center;
+  pointer-events: none;
+}

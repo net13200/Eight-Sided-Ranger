@@ -6,7 +6,7 @@ import { isUp, type Pos } from './grid';
 import { ENEMY_HP, TILE_GLYPH, type Enemy, type Level, type Tile } from './rules';
 
 /**
- * Level text format, like the Knight's: `key: value` lines, `---`, then the
+ * Level text format: `key: value` lines, `---`, then the
  * grid, one character per triangle (see TILE_GLYPH; `@` the die on an up
  * triangle, `w` a wolf, `s` a stag, both on grass).
  */
