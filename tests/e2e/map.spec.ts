@@ -90,4 +90,22 @@ test.describe('map', () => {
     await page.waitForTimeout(300);
     await expect(page.getByTestId('map-announcer')).toHaveText(/Level 6/);
   });
+
+  test('the World view: pick a district and the die is tossed to its next level', async ({
+    page,
+  }) => {
+    await withSave(page, seed(5));
+    await page.goto('/');
+    await page.getByTestId('play').click();
+    for (let i = 0; i < 5; i++) await page.keyboard.press('ArrowLeft');
+    await expect(page.getByTestId('map-announcer')).toHaveText(/Level 1/);
+    await page.getByTestId('world').click();
+    await expect(page.getByTestId('area-2')).toBeDisabled();
+    await page.getByTestId('area-1').click();
+    await expect(page.getByTestId('map-announcer')).toHaveText(/Level 6/, { timeout: 5000 });
+    await expect(page.getByTestId('map-play')).toBeEnabled();
+    await page.getByTestId('world').click();
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('world-close')).toBeHidden();
+  });
 });

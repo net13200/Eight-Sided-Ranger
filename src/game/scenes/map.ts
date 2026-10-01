@@ -22,6 +22,7 @@ import { el, icon, iconButton, place } from '../ui';
 import { drawControls, sideCard, touchFirst, wrap } from '../view/backdrop';
 import { drawOctahedron } from '../view/board';
 import { C } from '../view/palette';
+import { drawMedal, drawStar } from '../view/marks';
 import { twoStarLimit } from '../stars';
 import {
   COLS,
@@ -36,6 +37,7 @@ import {
   type WorldLayout,
 } from '../world/layout';
 import type { Scene } from './scene';
+import { drawWorldView, region, regionAt } from './world-view';
 
 const HUD_H = 56;
 const CARD_Y = 356;
@@ -107,6 +109,33 @@ export class MapScene implements Scene {
   private playBtn: HTMLButtonElement | null = null;
   private announcer: HTMLElement | null = null;
   private lastCam = -1;
+  /** The World view: open, its fade (0..1), and the district picked in it. */
+  private overview = false;
+  private overviewT = 0;
+  private overviewSel = 0;
+  private areaButtons: HTMLButtonElement[] = [];
+  private worldBtn: HTMLButtonElement | null = null;
+  private closeBtn: HTMLButtonElement | null = null;
+  private backBtn: HTMLButtonElement | null = null;
+  /** The die tossed to a district: wind-up, flight, landing. */
+  private toss: {
+    from: { x: number; y: number };
+    to: number;
+    t: number;
+    dur: number;
+    height: number;
+    stage: 'windup' | 'fly' | 'land';
+  } | null = null;
+  private bits: Array<{
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    t: number;
+    life: number;
+    kind: 'dust' | 'spark' | 'star';
+  }> = [];
+  private sparkClock = 0;
 
   constructor(
     private readonly game: Game,
@@ -200,7 +229,7 @@ export class MapScene implements Scene {
   }
 
   private selected(): number | null {
-    return this.hop || this.path.length || this.lay ? null : this.at;
+    return this.hop || this.path.length || this.lay || this.toss ? null : this.at;
   }
 
   private districtStars(d: number): { got: number; max: number; gold: boolean } {
@@ -257,15 +286,34 @@ export class MapScene implements Scene {
       onClick: () => this.play(),
     });
     this.playBtn.replaceChildren(icon('play'), el('span', { text: t('Play') }));
+    this.worldBtn = iconButton('map', t('World'), () => this.setOverview(true), 'world');
+    this.backBtn = iconButton('back', t('Menu'), () => this.game.goMenu(), 'back');
+    this.closeBtn = iconButton('close', t('Close'), () => this.setOverview(false), 'world-close');
+    this.closeBtn.style.display = 'none';
+    // The World view's districts: pick one and the die is tossed there.
+    for (let d = 0; d < DISTRICTS; d++) {
+      const g = region(d);
+      const name = t(DISTRICT_NAMES[d]!);
+      const { got, max } = this.districtStars(d);
+      const b = el('button', {
+        className: 'map-spot',
+        testId: `area-${d + 1}`,
+        label: this.districtOpen(d)
+          ? t('{name}, {n} of {max} stars', { name, n: got, max })
+          : t('{name}, locked', { name }),
+        onClick: () => this.tossTo(d),
+      });
+      b.disabled = !this.districtOpen(d);
+      b.style.display = 'none';
+      place(b, g.cx - g.rx * 0.8, g.cy - 30, g.rx * 1.6, 60);
+      this.areaButtons.push(b);
+      ui.append(b);
+    }
     ui.append(
-      place(this.playBtn, 74, 416, 262, 60),
-      place(
-        iconButton('back', t('Menu'), () => this.game.goMenu(), 'back'),
-        4,
-        414,
-        64,
-        62,
-      ),
+      place(this.playBtn, 140, 416, 196, 60),
+      place(this.backBtn, 4, 414, 64, 62),
+      place(this.worldBtn, 72, 414, 64, 62),
+      place(this.closeBtn, 272, 62, 64, 62),
     );
     this.syncCard();
     this.syncSpots(true);
@@ -274,6 +322,235 @@ export class MapScene implements Scene {
 
   exit(): void {
     this.unbind?.();
+  }
+
+  // ---------- the World view and the toss ----------
+
+  private districtOpen(d: number): boolean {
+    return this.unlocked[d * DISTRICT_SIZE] === true;
+  }
+
+  private dieDistrict(): number {
+    return this.at === DAILY_SPOT ? 0 : Math.floor(this.at / DISTRICT_SIZE);
+  }
+
+  private setOverview(on: boolean): void {
+    if (this.lay || this.toss || this.hop) return;
+    this.overview = on;
+    if (on) this.overviewSel = this.dieDistrict();
+    for (const b of this.areaButtons) b.style.display = on ? '' : 'none';
+    for (const b of [this.playBtn, this.backBtn, this.worldBtn])
+      if (b) b.style.display = on ? 'none' : '';
+    if (this.closeBtn) this.closeBtn.style.display = on ? '' : 'none';
+    for (const s of this.spots) s.el.style.visibility = on ? 'hidden' : '';
+    this.say(on ? t('World map') : '');
+    if (on) this.areaButtons[this.overviewSel]?.focus();
+    else this.worldBtn?.focus();
+  }
+
+  /** Where the die lands in a district: its first level not yet beaten, else its first. */
+  private landingIn(d: number): number | null {
+    const save = this.game.save.data;
+    let first: number | null = null;
+    for (
+      let i = d * DISTRICT_SIZE;
+      i < Math.min(this.game.levels.length, (d + 1) * DISTRICT_SIZE);
+      i++
+    ) {
+      if (!this.unlocked[i]) break;
+      first ??= i;
+      if (!isCompleted(save, this.game.levels[i]!)) return i;
+    }
+    return first;
+  }
+
+  /** Picks a district in the World view: the die is tossed there. */
+  private tossTo(d: number): void {
+    if (!this.districtOpen(d)) return;
+    const to = this.landingIn(d);
+    this.setOverview(false);
+    if (to === null || to === this.at) return;
+    const from = this.dieXY();
+    const dest = center(this.world.pedestals[to]!);
+    const dist = Math.hypot(dest.x - from.x, dest.y - from.y);
+    this.camTarget = null;
+    if (this.game.reducedMotion) {
+      this.at = to;
+      this.arrive();
+      return;
+    }
+    this.toss = {
+      from: { x: from.x, y: from.y },
+      to,
+      t: 0,
+      dur: Math.min(1.5, 0.75 + dist / 3000),
+      height: Math.min(170, 60 + dist * 0.06),
+      stage: 'windup',
+    };
+    this.game.audio.play('roll');
+    this.syncCard();
+  }
+
+  private updateToss(dt: number): void {
+    const s = this.toss!;
+    s.t += dt;
+    if (s.stage === 'windup' && s.t >= 0.2) {
+      s.stage = 'fly';
+      s.t = 0;
+      this.game.audio.play('swing');
+    } else if (s.stage === 'fly') {
+      this.sparkClock += dt;
+      if (this.sparkClock > 0.035) {
+        this.sparkClock = 0;
+        const p = this.tossXY();
+        const j = Math.sin(this.time * 97) * 5;
+        this.bits.push({
+          x: p.x + j,
+          y: p.y - p.h - j,
+          vx: 0,
+          vy: 10,
+          t: 0,
+          life: 0.45,
+          kind: 'spark',
+        });
+      }
+      if (s.t >= s.dur) {
+        s.stage = 'land';
+        s.t = 0;
+        this.game.audio.play('bump');
+        const { x, y } = center(this.world.pedestals[s.to]!);
+        for (let i = 0; i < 8; i++) {
+          const a = (i / 8) * Math.PI * 2;
+          this.bits.push({
+            x,
+            y: y + 6,
+            vx: Math.cos(a) * 40,
+            vy: Math.sin(a) * 16,
+            t: 0,
+            life: 0.5,
+            kind: 'dust',
+          });
+        }
+        for (let i = 0; i < 5; i++) {
+          const a = -Math.PI / 2 + (i - 2) * 0.5;
+          this.bits.push({
+            x,
+            y: y - 12,
+            vx: Math.cos(a) * 60,
+            vy: Math.sin(a) * 60,
+            t: 0,
+            life: 0.6,
+            kind: 'star',
+          });
+        }
+      }
+    } else if (s.stage === 'land' && s.t >= 0.5) {
+      this.toss = null;
+      this.at = s.to;
+      this.arrive();
+    }
+    if (!this.toss) this.syncCard();
+  }
+
+  /** The die's ground position and height during a toss. */
+  private tossXY(): { x: number; y: number; h: number; p: number } {
+    const s = this.toss!;
+    const to = center(this.world.pedestals[s.to]!);
+    if (s.stage === 'windup') return { ...s.from, h: 0, p: 0 };
+    if (s.stage === 'land') {
+      const k = s.t;
+      const h =
+        k < 0.24
+          ? Math.sin((k / 0.24) * Math.PI) * 10
+          : k < 0.4
+            ? Math.sin(((k - 0.24) / 0.16) * Math.PI) * 4
+            : 0;
+      return { ...to, h, p: 1 };
+    }
+    const p = Math.min(1, s.t / s.dur);
+    const q = p < 0.5 ? 2 * p * p : 1 - 2 * (1 - p) * (1 - p);
+    return {
+      x: s.from.x + (to.x - s.from.x) * q,
+      y: s.from.y + (to.y - s.from.y) * q,
+      h: Math.sin(Math.PI * p) * s.height,
+      p,
+    };
+  }
+
+  private updateBits(dt: number): void {
+    for (const b of this.bits) {
+      b.t += dt;
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.vx *= 0.92;
+      b.vy = b.kind === 'star' ? b.vy + 160 * dt : b.vy * 0.92;
+    }
+    this.bits = this.bits.filter((b) => b.t < b.life);
+  }
+
+  private drawTossedDie(ctx: CanvasRenderingContext2D): void {
+    const s = this.toss!;
+    const { x, y, h, p } = this.tossXY();
+    const far = Math.min(1, h / 120);
+    ctx.fillStyle = `rgba(0,0,0,${0.3 - 0.18 * far})`;
+    ctx.beginPath();
+    ctx.ellipse(x, y + 6, 11 * (1 - 0.5 * far), 4.5 * (1 - 0.5 * far), 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Squash and stretch: crouch before the jump, stretch in the air, squish on landing.
+    let sx: number;
+    let sy: number;
+    if (s.stage === 'windup') {
+      const w = Math.sin((s.t / 0.2) * Math.PI * 0.5);
+      sx = 1 + 0.22 * w;
+      sy = 1 - 0.25 * w;
+    } else if (s.stage === 'fly') {
+      const k = p < 0.15 ? 1 - p / 0.15 : 0;
+      sx = 1 - 0.12 * k;
+      sy = 1 + 0.18 * k;
+    } else {
+      const k = Math.max(0, 1 - s.t / 0.14);
+      sx = 1 + 0.3 * k;
+      sy = 1 - 0.28 * k;
+    }
+    const grow = 1 + h / 260;
+    ctx.save();
+    ctx.translate(x, y - h);
+    ctx.scale(sx * grow, sy * grow);
+    // It spins in the air.
+    drawOctahedron(ctx, 0, -14, 15, this.time * 0.8 + (s.stage === 'fly' ? p * 6 : 0), true);
+    ctx.restore();
+    if (s.stage === 'windup') {
+      const k = Math.min(1, s.t / 0.12);
+      ctx.fillStyle = C.gold;
+      ctx.font = `900 ${10 + 6 * k}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('!', x + 16, y - 38 - 4 * k);
+    }
+  }
+
+  private drawBits(ctx: CanvasRenderingContext2D): void {
+    for (const b of this.bits) {
+      const k = 1 - b.t / b.life;
+      if (b.kind === 'dust') {
+        ctx.fillStyle = `rgba(236,230,214,${0.5 * k})`;
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, 3 + (1 - k) * 5, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        const r = b.kind === 'star' ? 4 * k + 1 : 2.5 * k;
+        ctx.fillStyle =
+          b.kind === 'star' ? `rgba(255,215,94,${k})` : `rgba(255,241,176,${0.9 * k})`;
+        ctx.beginPath();
+        for (let i = 0; i < 8; i++) {
+          const a = (i * Math.PI) / 4;
+          const rr = i % 2 ? r * 0.4 : r;
+          ctx.lineTo(b.x + Math.cos(a) * rr, b.y + Math.sin(a) * rr);
+        }
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
   }
 
   private say(text: string): void {
@@ -321,8 +598,22 @@ export class MapScene implements Scene {
   }
 
   command(cmd: Command): void {
+    if (this.overview) {
+      if (cmd.type === 'back') this.setOverview(false);
+      else if (cmd.type === 'confirm') this.tossTo(this.overviewSel);
+      else if (cmd.type === 'move' && !cmd.swipe && (cmd.dir === 'N' || cmd.dir === 'S')) {
+        // Up is the next district (they're stacked, the last on top).
+        const sel = this.overviewSel + (cmd.dir === 'N' ? 1 : -1);
+        if (sel >= 0 && sel < DISTRICTS && this.districtOpen(sel)) this.overviewSel = sel;
+        this.areaButtons[this.overviewSel]?.focus();
+      } else if (cmd.type === 'tap') {
+        const d = regionAt(cmd.x, cmd.y);
+        if (d !== null) this.tossTo(d);
+      }
+      return;
+    }
     if (cmd.type === 'back') return this.game.goMenu();
-    if (this.lay) return;
+    if (this.lay || this.toss) return;
     if (cmd.type === 'confirm') this.play();
     else if (cmd.type === 'move') {
       // Swipes scroll the map; the arrow keys hop to the next (up, right) or previous level.
@@ -354,6 +645,9 @@ export class MapScene implements Scene {
 
   update(dt: number): void {
     this.time += dt;
+    this.overviewT = Math.max(0, Math.min(1, this.overviewT + (this.overview ? dt : -dt) * 7));
+    if (this.toss) this.updateToss(dt);
+    this.updateBits(dt);
     if (this.lay) this.updateLay(dt);
     if (this.hop) {
       const fast = this.path.length > 12 ? 0.5 : 1;
@@ -369,8 +663,11 @@ export class MapScene implements Scene {
       this.fling *= Math.exp(-dt * 4);
       if (Math.abs(this.fling) < 20) this.fling = 0;
     }
-    const target = this.camTarget ?? this.followY();
-    const k = this.game.reducedMotion || this.drag?.moved ? 1 : Math.min(1, dt * 7);
+    const target = this.toss
+      ? this.clampCam(this.tossXY().y - VIEW_H * 0.6 - this.tossXY().h * 0.4)
+      : (this.camTarget ?? this.followY());
+    const k =
+      this.game.reducedMotion || this.drag?.moved ? 1 : Math.min(1, dt * (this.toss ? 9 : 7));
     this.camY += (target - this.camY) * k;
     if (Math.abs(target - this.camY) < 0.3) this.camY = target;
     this.syncSpots();
@@ -494,7 +791,16 @@ export class MapScene implements Scene {
   }
 
   idle(): boolean {
-    return !this.hop && !this.lay && !this.drag && !this.fling && this.camTarget === null;
+    return (
+      !this.hop &&
+      !this.lay &&
+      !this.toss &&
+      !this.bits.length &&
+      !this.drag &&
+      !this.fling &&
+      this.camTarget === null &&
+      (this.overviewT === 0 || this.overviewT === 1)
+    );
   }
 
   // ---------- drawing ----------
@@ -513,10 +819,30 @@ export class MapScene implements Scene {
     this.drawRoad(ctx, r0, r1);
     this.drawPedestals(ctx, r0, r1);
     if (this.daily.r >= r0 - 1 && this.daily.r <= r1 + 1) this.drawBoard(ctx);
-    this.drawDie(ctx);
+    if (this.toss) this.drawTossedDie(ctx);
+    else this.drawDie(ctx);
+    this.drawBits(ctx);
     ctx.restore();
     this.drawHud(ctx);
     this.drawCard(ctx);
+    if (this.overviewT > 0) this.drawOverview(ctx);
+  }
+
+  private drawOverview(ctx: CanvasRenderingContext2D): void {
+    const save = this.game.save.data;
+    drawWorldView(ctx, {
+      alpha: this.game.reducedMotion ? (this.overview ? 1 : 0) : this.overviewT,
+      selected: this.overview ? this.overviewSel : -1,
+      time: this.game.reducedMotion ? 0 : this.time,
+      open: Array.from({ length: DISTRICTS }, (_, d) => this.districtOpen(d)),
+      stars: Array.from({ length: DISTRICTS }, (_, d) => this.districtStars(d)),
+      dots: this.game.levels.map((l, i) => {
+        if (!this.unlocked[i]) return 'locked';
+        if (!isCompleted(save, l)) return 'open';
+        return save.levels[l.id]?.stars === 3 ? 'gold' : 'done';
+      }),
+      at: this.at,
+    });
   }
 
   private drawGround(ctx: CanvasRenderingContext2D, r0: number, r1: number): void {
@@ -809,6 +1135,16 @@ export class MapScene implements Scene {
   }
 
   private drawHud(ctx: CanvasRenderingContext2D): void {
+    if (this.overviewT >= 1) {
+      ctx.fillStyle = '#17281f';
+      ctx.fillRect(0, 0, 340, HUD_H);
+      ctx.fillStyle = C.accent;
+      ctx.font = '800 17px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(t('The Greenwood'), 170, 28, 300);
+      return;
+    }
     ctx.fillStyle = '#17281f';
     ctx.fillRect(0, 0, 340, HUD_H);
     ctx.fillStyle = '#2c4433';
@@ -1125,73 +1461,4 @@ function leaves(ctx: Ctx): void {
     ctx.ellipse(dx, dy, 3.5, 2, dx * 0.2, 0, Math.PI * 2);
     ctx.fill();
   }
-}
-
-export function drawStar(
-  ctx: Ctx,
-  cx: number,
-  cy: number,
-  r: number,
-  filled: boolean,
-  /** On a light ground (parchment): empty stars are drawn in ink. */
-  light = false,
-): void {
-  ctx.beginPath();
-  for (let i = 0; i < 10; i++) {
-    const a = -Math.PI / 2 + (i * Math.PI) / 5;
-    const rr = i % 2 ? r * 0.45 : r;
-    ctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
-  }
-  ctx.closePath();
-  ctx.fillStyle = filled ? '#ffd75e' : light ? 'rgba(58,38,20,0.08)' : 'rgba(255,255,255,0.1)';
-  ctx.fill();
-  ctx.lineWidth = Math.max(1.2, r * 0.12);
-  ctx.strokeStyle = filled ? '#8a6414' : light ? 'rgba(58,38,20,0.45)' : 'rgba(255,255,255,0.3)';
-  ctx.stroke();
-}
-
-/** A district's "all ★★★" mark: a gold medal with a check and two ribbon tails. */
-export function drawMedal(ctx: Ctx, x: number, y: number, r: number, time: number): void {
-  ctx.save();
-  ctx.fillStyle = '#c0392b';
-  for (const side of [-1, 1]) {
-    ctx.beginPath();
-    ctx.moveTo(x + side * r * 0.2, y + r * 0.3);
-    ctx.lineTo(x + side * r * 0.85, y + r * 1.55);
-    ctx.lineTo(x + side * r * 0.45, y + r * 1.35);
-    ctx.lineTo(x + side * r * 0.2, y + r * 1.7);
-    ctx.lineTo(x - side * r * 0.1, y + r * 0.5);
-    ctx.closePath();
-    ctx.fill();
-  }
-  ctx.beginPath();
-  ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fillStyle = '#8a5a08';
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(x, y, r * 0.84, 0, Math.PI * 2);
-  ctx.fillStyle = '#ffd75e';
-  ctx.fill();
-  if (time) {
-    const k = (time * 0.5) % 2;
-    if (k < 1) {
-      ctx.save();
-      ctx.clip();
-      ctx.fillStyle = 'rgba(255,255,255,0.55)';
-      ctx.translate(x - r * 2 + k * r * 4, y);
-      ctx.rotate(0.5);
-      ctx.fillRect(-r * 0.2, -r * 2, r * 0.4, r * 4);
-      ctx.restore();
-    }
-  }
-  ctx.strokeStyle = '#6b4404';
-  ctx.lineWidth = Math.max(1.4, r * 0.28);
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.beginPath();
-  ctx.moveTo(x - r * 0.45, y + r * 0.02);
-  ctx.lineTo(x - r * 0.1, y + r * 0.38);
-  ctx.lineTo(x + r * 0.5, y - r * 0.35);
-  ctx.stroke();
-  ctx.restore();
 }
