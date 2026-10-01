@@ -20,13 +20,6 @@ jobs:
       - run: npm run size
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
-      # The CrazyGames build (Basic Launch: no SDK), and its zip kept for upload.
-      - run: npm run build:crazygames
-      - run: npm run size -- dist-crazygames
-      - uses: actions/upload-artifact@v4
-        with:
-          name: eight-sided-ranger-crazygames
-          path: eight-sided-ranger-crazygames.zip
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

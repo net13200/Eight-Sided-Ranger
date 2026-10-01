@@ -17,10 +17,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "build:playtest": "vite build --mode artifact && node tools/inline-artifact.mjs",
-    "build:crazygames": "tsc --noEmit && vite build --mode crazygames && node tools/package-portal.mjs crazygames",
     "preview": "vite preview",
     "test:e2e": "playwright test",
-    "test:e2e:crazygames": "playwright test -c playwright.crazygames.config.ts",
     "size": "node tools/check-size.mjs"
   },
   "engines": {

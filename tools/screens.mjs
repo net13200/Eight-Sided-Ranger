@@ -1,6 +1,6 @@
 /**
  * Screenshots at the sizes that matter: phones (portrait, small, landscape),
- * a 16:9 desktop window, and CrazyGames' smallest iframe at DPR 1.
+ * a 16:9 desktop window, and a small 16:9 window at DPR 1.
  *
  *   npx vite build && npx vite preview --port 4173 &
  *   node tools/screens.mjs [url-suffix] [out-dir]
@@ -14,7 +14,7 @@ const SIZES = [
   { name: 'phone-small', width: 375, height: 667, dpr: 2, mobile: true },
   { name: 'phone-landscape', width: 915, height: 412, dpr: 2.6, mobile: true },
   { name: 'desktop-16x9', width: 1280, height: 720, dpr: 1, mobile: false },
-  { name: 'crazygames-800x450', width: 800, height: 450, dpr: 1, mobile: false },
+  { name: 'small-16x9', width: 800, height: 450, dpr: 1, mobile: false },
 ];
 const suffix = process.argv[2] ?? '';
 const out = process.argv[3] ?? 'screens';

@@ -18,7 +18,7 @@ export type ShareResult = 'shared' | 'copied' | 'failed';
 
 export interface Platform {
   readonly storage: KeyValueStorage;
-  /** Ad breaks and portal events (none on the web build). */
+  /** Ad breaks and host events (none). */
   readonly ads: Ads;
   /** The link shared results point to, or null where outside links aren't allowed (portals). */
   readonly shareUrl: string | null;
