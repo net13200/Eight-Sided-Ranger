@@ -6,7 +6,7 @@ export interface Lesson {
   readonly text: string;
 }
 
-export const LESSONS: Readonly<Record<string, Lesson>> = {
+export const LESSONS: Record<string, Lesson> = {
   '1-01': {
     title: tk('Three ways to roll'),
     text: tk(
@@ -32,6 +32,32 @@ export const LESSONS: Readonly<Record<string, Lesson>> = {
     ),
   },
 };
+
+/** Lessons from Wolf Hollow on. */
+Object.assign(LESSONS, {
+  '2-01': {
+    title: tk('The Trap'),
+    text: tk(
+      'Land with the Trap face-down on grass to lay a snare. A wolf that steps in is caught for 3 turns.',
+    ),
+  },
+  '2-03': {
+    title: tk('The Cloak'),
+    text: tk('With the Cloak on top, nobody can see you: wolves stop hunting and lose your trail.'),
+  },
+  '2-05': {
+    title: tk('Sleeping wolves'),
+    text: tk(
+      'Some wolves are asleep. Stop within two rolls of one and it wakes, and hunts you from the next turn. With the Cloak on top, you wake no one.',
+    ),
+  },
+  '2-10': {
+    title: tk('Gauntlet'),
+    text: tk(
+      'Three floors in a row, and your HP carries over: nothing heals between floors. Moves add up against one par for the whole run. Leave, and the gauntlet starts over.',
+    ),
+  },
+} satisfies Record<string, Lesson>);
 
 export const FACE_INFO: Readonly<Record<string, string>> = {
   Bow: tk('Shoots along the row: 1 damage, over water.'),

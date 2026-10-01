@@ -1,0 +1,13 @@
+id: 2-08
+name: Hollow Spring
+par: 13
+hint: Snare, cloak, and mend
+loadout: Herb Trap Knife Cloak Leaf Bow Leaf Leaf
+teaches: trap,cloak
+---
+..#.....#
+.~.@..+..
+..#.#z...
+....>....
+..w..w...
+....w....

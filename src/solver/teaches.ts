@@ -5,7 +5,7 @@
  * par would be shorter. Used by tests and tools, not the game.
  */
 import type { Dir } from '../engine/die';
-import { hidden, startState, step, type EnemyKind, type Level, type State } from '../engine/rules';
+import { hidden, startState, step, type Level, type State } from '../engine/rules';
 import { solve } from './solve';
 
 export const FACE_TEACHES = {
@@ -17,7 +17,11 @@ export const FACE_TEACHES = {
   cloak: 'Cloak',
   herb: 'Herb',
 } as const;
-export const CREATURE_TEACHES = { stag: 'stag' } as const satisfies Record<string, EnemyKind>;
+/** Creatures a level can teach: each picks out the enemies it means. */
+export const CREATURE_TEACHES = {
+  stag: (e: Level['enemies'][number]) => e.kind === 'stag',
+  sleeper: (e: Level['enemies'][number]) => !!e.asleep,
+} as const;
 
 export const TEACHES = [
   'roll',
@@ -57,21 +61,21 @@ export function withoutFace(level: Level, face: string): Level {
   return { ...level, loadout: level.loadout.map((f) => (f === face ? 'Leaf' : f)) };
 }
 
-/** The level with every creature of one kind gone. */
-export function withoutCreature(level: Level, kind: EnemyKind): Level {
-  return { ...level, enemies: level.enemies.filter((e) => e.kind !== kind) };
+/** The level without the creatures a teach means (all stags, all sleeping wolves). */
+export function withoutCreature(level: Level, teach: keyof typeof CREATURE_TEACHES): Level {
+  return { ...level, enemies: level.enemies.filter((e) => !CREATURE_TEACHES[teach](e)) };
 }
 
 /** Problems with a level's claim to teach `teach` (empty when it does). */
 export function checkTeach(level: Level, path: readonly Dir[], teach: Teach): string[] {
   if (teach === 'roll') return [];
   if (teach in CREATURE_TEACHES) {
-    const kind = CREATURE_TEACHES[teach as keyof typeof CREATURE_TEACHES];
-    if (!level.enemies.some((e) => e.kind === kind)) return [`no ${kind} in the level`];
-    const r = solve(startState(withoutCreature(level, kind)), { maxNodes: 400_000 });
+    const which = teach as keyof typeof CREATURE_TEACHES;
+    if (!level.enemies.some(CREATURE_TEACHES[which])) return [`no ${which} in the level`];
+    const r = solve(startState(withoutCreature(level, which)), { maxNodes: 400_000 });
     return r.status === 'solved' && r.moves < path.length
       ? []
-      : [`the ${kind} doesn't shape the route (without it: ${r.status}, ${r.moves} moves)`];
+      : [`the ${which} doesn't shape the route (without it: ${r.status}, ${r.moves} moves)`];
   }
   const face = FACE_TEACHES[teach as keyof typeof FACE_TEACHES];
   const f = routeFacts(level, path);

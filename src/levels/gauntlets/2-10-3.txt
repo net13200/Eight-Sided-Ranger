@@ -1,0 +1,13 @@
+id: 2-10-3
+name: Wolf Hollow: the way out
+par: 9
+hint: From 1 HP: unseen
+hp: 1
+loadout: Trap Leaf Knife Leaf Cloak Bow Leaf Leaf
+teaches: cloak
+---
+.........
+.........
+.......>w
+......z..
+...#@....

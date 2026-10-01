@@ -1,0 +1,12 @@
+id: 2-07
+name: Bedtime Snares
+par: 11
+hint: Snare the path before they wake
+loadout: Leaf Trap Knife Leaf Leaf Bow Leaf Leaf
+teaches: trap,sleeper
+---
+..z#@.#..
+..z..z..#
+.......~.
+...z#~.#.
+...>.....

@@ -137,33 +137,57 @@ const ROLE: Readonly<Record<string, string>> = {
 };
 export const faceColor = (face: string): string => ROLE[face] ?? '#d9d2e8';
 
+/** Each district's ground on the board: two grass shades, the cell lines, trees. */
+const DISTRICT_LOOK = [
+  { grassA: '#2f5a37', grassB: '#346140', line: '#1d3a26', tree: '#18331f', pine: '#3f7d45' },
+  { grassA: '#2a4a33', grassB: '#2e5038', line: '#1a3022', tree: '#142a1b', pine: '#356b40' },
+  { grassA: '#2f5e45', grassB: '#34664b', line: '#1d3d2c', tree: '#183224', pine: '#3f8158' },
+  { grassA: '#5c6a2c', grassB: '#647231', line: '#3a441b', tree: '#2e3a16', pine: '#6b8a3a' },
+  { grassA: '#22374a', grassB: '#263d52', line: '#16243a', tree: '#121e2e', pine: '#355a7a' },
+  { grassA: '#5a3e22', grassB: '#634526', line: '#3a2814', tree: '#2e1f10', pine: '#a8642a' },
+];
+
+/** The look for a level, by its district (the first digit of its id); the Edgewood's otherwise. */
+function lookOf(s: State) {
+  const d = Number(s.level.id.split('-')[0]) - 1;
+  return DISTRICT_LOOK[d] ?? DISTRICT_LOOK[0]!;
+}
+
 // ---------- the board ----------
 
 export function drawForest(ctx: Ctx, s: State, t: number): void {
   const { width, height } = s.level;
+  const look = lookOf(s);
   ctx.fillStyle = FOREST.bg;
   ctx.fillRect(0, 0, 340, 480);
   for (let y = 0; y < height; y++)
-    for (let x = 0; x < width; x++) drawTile(ctx, tileAt(s, x, y)!, x, y, t);
+    for (let x = 0; x < width; x++) drawTile(ctx, tileAt(s, x, y)!, x, y, t, look);
   // The stags' rows are dangerous (unless the Cloak hides you).
   if (!hidden(s))
     for (const e of s.enemies) if (e.kind === 'stag' && e.snared === 0) drawLane(ctx, s, e);
 }
 
-function drawTile(ctx: Ctx, tile: Tile, x: number, y: number, t: number): void {
+function drawTile(
+  ctx: Ctx,
+  tile: Tile,
+  x: number,
+  y: number,
+  t: number,
+  look: (typeof DISTRICT_LOOK)[number],
+): void {
   const c = corners(x, y);
   const m = center(x, y);
   tri(ctx, c);
-  ctx.fillStyle = (x + y) % 4 < 2 ? FOREST.grassA : FOREST.grassB;
+  ctx.fillStyle = (x + y) % 4 < 2 ? look.grassA : look.grassB;
   if (tile === 'water') ctx.fillStyle = FOREST.water;
-  if (tile === 'tree') ctx.fillStyle = FOREST.tree;
+  if (tile === 'tree') ctx.fillStyle = look.tree;
   ctx.fill();
-  ctx.strokeStyle = FOREST.line;
+  ctx.strokeStyle = look.line;
   ctx.lineWidth = 1;
   ctx.stroke();
   switch (tile) {
     case 'tree':
-      pine(ctx, m.x, m.y + 4, 13);
+      pine(ctx, m.x, m.y + 4, 13, look.pine);
       break;
     case 'water': {
       ctx.strokeStyle = FOREST.waterHi;
@@ -236,10 +260,10 @@ function drawTile(ctx: Ctx, tile: Tile, x: number, y: number, t: number): void {
   }
 }
 
-function pine(ctx: Ctx, x: number, y: number, h: number): void {
+function pine(ctx: Ctx, x: number, y: number, h: number, color: string): void {
   ctx.fillStyle = '#5a3b1f';
   ctx.fillRect(x - 1.5, y, 3, 4);
-  ctx.fillStyle = FOREST.pine;
+  ctx.fillStyle = color;
   for (const [dy, w] of [
     [-h, 5],
     [-h * 0.6, 8],
@@ -273,7 +297,12 @@ export function drawEnemy(ctx: Ctx, e: Enemy, p: Pt, t: number): void {
   ctx.translate(p.x, p.y);
   const bob = Math.sin(t * 3 + e.id) * 1;
   if (e.kind === 'wolf') {
-    ctx.fillStyle = '#9aa0ab';
+    if (e.asleep) {
+      // Curled up: lower, greyer, the head resting.
+      ctx.translate(0, 4);
+      ctx.scale(1.1, 0.8);
+    }
+    ctx.fillStyle = e.asleep ? '#737a87' : '#9aa0ab';
     ctx.strokeStyle = '#2b2d33';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
@@ -289,9 +318,34 @@ export function drawEnemy(ctx: Ctx, e: Enemy, p: Pt, t: number): void {
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
-    ctx.fillStyle = '#ffd35e';
-    ctx.fillRect(-5, -3 + bob, 2.5, 2);
-    ctx.fillRect(2.5, -3 + bob, 2.5, 2);
+    if (e.asleep) {
+      // Eyes shut, and a slow "z z" drifting up.
+      ctx.strokeStyle = '#2b2d33';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(-5.5, -2 + bob);
+      ctx.lineTo(-2.5, -2 + bob);
+      ctx.moveTo(2.5, -2 + bob);
+      ctx.lineTo(5.5, -2 + bob);
+      ctx.stroke();
+      ctx.fillStyle = '#cfe0ff';
+      ctx.strokeStyle = '#1b2433';
+      ctx.lineWidth = 2;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      for (let i = 0; i < 2; i++) {
+        const k = (t * 0.45 + i * 0.5) % 1;
+        ctx.globalAlpha = Math.sin(k * Math.PI);
+        ctx.font = `bold ${9 + k * 5}px system-ui, sans-serif`;
+        ctx.strokeText('z', 9 + k * 7, -14 - k * 12);
+        ctx.fillText('z', 9 + k * 7, -14 - k * 12);
+      }
+      ctx.globalAlpha = 1;
+    } else {
+      ctx.fillStyle = '#ffd35e';
+      ctx.fillRect(-5, -3 + bob, 2.5, 2);
+      ctx.fillRect(2.5, -3 + bob, 2.5, 2);
+    }
     ctx.fillStyle = '#2b2d33';
     ctx.fillRect(-1.5, 3 + bob, 3, 2);
   } else {

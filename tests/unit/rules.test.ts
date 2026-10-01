@@ -124,6 +124,25 @@ describe('rules', () => {
     ).toThrow();
   });
 
+  it('a sleeping wolf lies still until the Ranger comes within two rolls, then hunts', () => {
+    let s = LV('@.....z.');
+    s = play(s, 'E'); // 5 rolls away: still asleep
+    expect(s.enemies[0]).toMatchObject({ x: 6, asleep: true });
+    s = play(s, 'EEE'); // now 2 rolls away: it wakes (and doesn't move yet)
+    expect(s.enemies[0]).toMatchObject({ x: 6, asleep: false });
+    s = play(s, 'W'); // awake: it hunts
+    expect(s.enemies[0]!.x).toBe(5);
+  });
+
+  it('the Cloak lets you slip past a sleeping wolf; an arrow wakes it', () => {
+    // The Cloak is the upper-left face: rolling W puts it on top, two rolls from the wolf.
+    const s = play(LV('..@z...', 'Leaf Leaf Leaf Leaf Leaf Cloak Leaf Leaf'), 'W');
+    expect(faceAt(s.level.loadout, s.orient, 0)).toBe('Cloak');
+    expect(s.enemies[0]).toMatchObject({ x: 3, asleep: true });
+    const shot = play(LV('@...z', facing('Bow')), 'E');
+    expect(shot.enemies[0]).toMatchObject({ hp: 1, asleep: false });
+  });
+
   it('the Bow shoots along the row, over water; a wolf takes two arrows', () => {
     let s = LV('@.~~.w.#', facing('Bow'));
     s = play(s, 'E');

@@ -1,0 +1,12 @@
+id: 2-10
+name: Wolf Hollow
+par: 10
+hint: Three floors; HP carries over
+loadout: Leaf Knife Trap Bow Cloak Leaf Leaf Leaf
+teaches: sleeper
+---
+.........
+.@.....>.
+...z..w..
+.........
+.........

@@ -49,6 +49,8 @@ export interface Enemy {
   readonly hp: number;
   /** Turns left caught in a snare. */
   readonly snared: number;
+  /** A sleeping wolf: still until the Ranger comes within two rolls (unseen) or hurts it. */
+  readonly asleep?: boolean;
 }
 
 export interface Level {
@@ -65,6 +67,11 @@ export interface Level {
   readonly teaches?: readonly string[];
   /** Starting HP, if not full (the Ranger arrives hurt). */
   readonly hp?: number;
+  /**
+   * A gauntlet's later floors, played in a row after this one with HP carried
+   * over (attached by the campaign loader; floors 2 and 3 are winnable from 1 HP).
+   */
+  readonly floors?: readonly Level[];
 }
 
 export interface State {
@@ -123,6 +130,7 @@ export type GameEvent =
   | { type: 'bitten'; id: number; from: Pos }
   | { type: 'charged'; id: number; from: Pos }
   | { type: 'healed'; hp: number }
+  | { type: 'woke'; id: number; at: Pos }
   | { type: 'won' }
   | { type: 'lost' };
 
@@ -158,7 +166,7 @@ function hurt(
   if (e.hp - dmg <= 0) {
     enemies.splice(i, 1);
     events.push({ type: 'killed', id, kind, at });
-  } else enemies[i] = { ...e, hp: e.hp - dmg };
+  } else enemies[i] = { ...e, hp: e.hp - dmg, asleep: false };
 }
 
 export function step(s: State, dir: Dir): StepResult {
@@ -282,6 +290,14 @@ function enemyPhase(s: State, events: GameEvent[]): State {
       continue;
     }
     if (unseen) continue;
+    if (e.asleep) {
+      // Wakes when the Ranger stops within two rolls; acts from the next turn.
+      if (within(e.x, e.y, s.x, s.y, 2)) {
+        enemies[k] = { ...e, asleep: false };
+        events.push({ type: 'woke', id: e.id, at: { x: e.x, y: e.y } });
+      }
+      continue;
+    }
     const cur: State = { ...s, tiles, enemies, hp };
     if (e.kind === 'stag') {
       if (e.y === s.y && clearRow(cur, e, s.x)) {
@@ -309,6 +325,26 @@ function enemyPhase(s: State, events: GameEvent[]): State {
     }
   }
   return { ...s, tiles, enemies, hp };
+}
+
+/** Within `n` rolls on the bare grid (trees and water don't matter: wolves hear through them). */
+export function within(ax: number, ay: number, bx: number, by: number, n: number): boolean {
+  let frontier = [{ x: ax, y: ay }];
+  const seen = new Set([`${ax},${ay}`]);
+  for (let d = 0; d <= n; d++) {
+    if (frontier.some((p) => p.x === bx && p.y === by)) return true;
+    const next: { x: number; y: number }[] = [];
+    for (const p of frontier)
+      for (const dir of movesFrom(p.x, p.y)) {
+        const q = neighbor(p.x, p.y, dir)!;
+        if (!seen.has(`${q.x},${q.y}`)) {
+          seen.add(`${q.x},${q.y}`);
+          next.push(q);
+        }
+      }
+    frontier = next;
+  }
+  return false;
 }
 
 /** Nothing solid (or another enemy) between an enemy and column `px` in its row. */

@@ -13,6 +13,7 @@ import {
   continueIndex,
   dailyOpen,
   isCompleted,
+  runPar,
   needsRedo,
   unlockedLevels,
 } from '../../meta/progress';
@@ -1038,6 +1039,15 @@ export class MapScene implements Scene {
         ctx.arc(0, 0, 21, 0, Math.PI * 2);
         ctx.fill();
       }
+      if (level.floors?.length) {
+        // A gauntlet: two standing stones either side, like a gate.
+        ctx.fillStyle = '#8f8570';
+        for (const sx of [-1, 1]) {
+          ctx.beginPath();
+          ctx.roundRect(sx * 21 - 4, -20, 8, 30, 3);
+          ctx.fill();
+        }
+      }
       // A flat triangle stone: the Greenwood's levels are triangles.
       const tri = (dy: number) => {
         ctx.beginPath();
@@ -1212,12 +1222,17 @@ export class MapScene implements Scene {
     ctx.fillText(t(level.name), 56, CARD_Y + 20, 200);
     ctx.fillStyle = C.textDim;
     ctx.font = '11px system-ui, sans-serif';
-    const par = level.par !== undefined ? t('Par {n}', { n: level.par }) : '';
+    // A gauntlet's par is for the whole run, never one floor's.
+    const parN = runPar(level);
+    const par = parN !== undefined ? t('Par {n}', { n: parN }) : '';
+    const floors = 1 + (level.floors?.length ?? 0);
     const sub = needsRedo(save, level)
       ? t('Changed: solve it again')
       : done && rec
         ? `${par} · ${t('your best {n} moves', { n: rec.bestMoves })}`
-        : `${par} · ${t('★★ in {n}', { n: twoStarLimit(level.par ?? 0) })}`;
+        : floors > 1
+          ? `${par} · ${t('Gauntlet: {n} floors in a row', { n: floors })}`
+          : `${par} · ${t('★★ in {n}', { n: twoStarLimit(parN ?? 0) })}`;
     ctx.fillText(sub, 56, CARD_Y + 37, 210);
     const stars = done ? (rec?.stars ?? 0) : 0;
     for (let s = 0; s < 3; s++) drawStar(ctx, 284 + s * 19, CARD_Y + 28, 7, s < stars);

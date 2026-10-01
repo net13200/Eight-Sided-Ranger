@@ -1,0 +1,13 @@
+id: 2-09
+name: The Sleepers
+par: 11
+hint: Three asleep, one way through
+loadout: Leaf Knife Trap Bow Cloak Leaf Leaf Leaf
+teaches: cloak,sleeper
+---
+.........
+.........
+..#.z...>
+#......zz
+....~..#.
+..#....@#

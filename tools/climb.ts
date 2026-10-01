@@ -104,8 +104,8 @@ function score(g: Grid): Scored {
   const f = routeFacts(lv, r.path);
   for (const t of teaches) {
     if (t === 'roll') continue;
-    if (t === 'stag') {
-      const w = solve(startState(withoutCreature(lv, 'stag')), { maxNodes: 60_000 });
+    if (t === 'stag' || t === 'sleeper') {
+      const w = solve(startState(withoutCreature(lv, t)), { maxNodes: 60_000 });
       s += (w.status === 'solved' ? r.moves - w.moves : -5) * 10;
       continue;
     }

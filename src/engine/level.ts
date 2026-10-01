@@ -8,7 +8,7 @@ import { ENEMY_HP, MAX_HP, TILE_GLYPH, type Enemy, type Level, type Tile } from 
 /**
  * Level text format: `key: value` lines, `---`, then the
  * grid, one character per triangle (see TILE_GLYPH; `@` the die on an up
- * triangle, `w` a wolf, `s` a stag, both on grass).
+ * triangle, `w` a wolf, `z` a sleeping wolf, `s` a stag, all on grass).
  */
 export function parseLevel(text: string): Level {
   const [head, body] = text.split(/^---\s*$/m) as [string, string];
@@ -29,12 +29,12 @@ export function parseLevel(text: string): Level {
     for (let x = 0; x < width; x++) {
       const ch = row[x] ?? '#';
       if (ch === '@') start = { x, y };
-      if (ch === 'w' || ch === 's') {
-        const kind = ch === 'w' ? 'wolf' : 'stag';
-        enemies.push({ kind, x, y, hp: ENEMY_HP[kind] });
+      if (ch === 'w' || ch === 's' || ch === 'z') {
+        const kind = ch === 's' ? 'stag' : 'wolf';
+        enemies.push({ kind, x, y, hp: ENEMY_HP[kind], ...(ch === 'z' ? { asleep: true } : {}) });
       }
       const tile = TILE_GLYPH[ch] ?? 'grass';
-      if (!(ch in TILE_GLYPH) && !'@ws'.includes(ch)) throw new Error(`Unknown glyph '${ch}'`);
+      if (!(ch in TILE_GLYPH) && !'@wsz'.includes(ch)) throw new Error(`Unknown glyph '${ch}'`);
       tiles.push(tile);
     }
   });

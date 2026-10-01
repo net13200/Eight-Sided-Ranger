@@ -17,9 +17,16 @@ export const DISTRICT_NAMES = [
   tk('The Heartwood'),
 ] as const;
 
-/** FNV-1a over the level's rules-relevant content, as 8 hex digits. */
+/** A level's par for the whole run: a gauntlet's par covers all its floors. */
+export function runPar(level: Level): number | undefined {
+  if (level.par === undefined) return undefined;
+  return level.par + (level.floors ?? []).reduce((n, f) => n + (f.par ?? 0), 0);
+}
+
+/** FNV-1a over the level's rules-relevant content (a gauntlet's floors too), as 8 hex digits. */
 export function fingerprint(level: Level): string {
   const text = [
+    ...(level.floors ?? []).map(fingerprint),
     level.width,
     level.tiles.join(''),
     `${level.start.x},${level.start.y}`,

@@ -15,7 +15,7 @@ export interface SolveResult {
 
 export function stateKey(s: State): string {
   const parts = [s.x, s.y, s.orient, s.hp];
-  for (const e of s.enemies) parts.push(e.id, e.x, e.y, e.hp, e.snared);
+  for (const e of s.enemies) parts.push(e.id, e.x, e.y, e.hp, e.snared, e.asleep ? 1 : 0);
   parts.push(-1);
   s.tiles.forEach((t, i) => {
     if (t !== s.level.tiles[i]) parts.push(i, t.length);

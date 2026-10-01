@@ -20,7 +20,13 @@ const paths = files.length
   : readdirSync(dir)
       .filter((f) => f.endsWith('.txt'))
       .sort()
-      .map((f) => `${dir}/${f}`);
+      .map((f) => `${dir}/${f}`)
+      .concat(
+        readdirSync('src/levels/gauntlets')
+          .filter((f) => f.endsWith('.txt'))
+          .sort()
+          .map((f) => `src/levels/gauntlets/${f}`),
+      );
 let bad = 0;
 for (const path of paths) {
   const text = readFileSync(path, 'utf8');

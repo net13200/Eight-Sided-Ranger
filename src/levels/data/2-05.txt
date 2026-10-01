@@ -1,0 +1,11 @@
+id: 2-05
+name: Let Them Sleep
+par: 9
+hint: Wolves wake if you come close
+loadout: Leaf Leaf Knife Leaf Bow Leaf Leaf Leaf
+teaches: sleeper
+---
+.........
+.........
+......#..
+...@.z>..

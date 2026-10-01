@@ -1,5 +1,6 @@
 /** Entry point: wires the platform, stage, input and loop to the game. */
 import { Game } from './game/game';
+import { CampaignMode } from './game/play-mode';
 import { bindInput } from './game/input';
 import { Loop } from './game/loop';
 import { autoFitLabels } from './game/ui';
@@ -45,7 +46,15 @@ platform.onVisibilityChange((visible) => {
 await loadLang(game.save.data.settings.lang);
 
 const levelParam = Number(params.get('level'));
-if (levelParam >= 1) game.goPlay(levelParam - 1, { story: false });
+const floorParam = Number(params.get('floor'));
+const gauntletFloor = game.levels[levelParam - 1]?.floors?.[floorParam - 2];
+// ?level=20&floor=3 opens a gauntlet's later floor directly (for screenshots and testing).
+if (gauntletFloor)
+  game.playLevel(
+    { ...gauntletFloor },
+    new CampaignMode(game, levelParam - 1, { floor: floorParam - 1, movesBefore: 0 }),
+  );
+else if (levelParam >= 1) game.goPlay(levelParam - 1, { story: false });
 // A first-time player goes from the logo straight into the story and level 1; everyone else to the title screen.
 else if (Object.keys(game.save.data.levels).length === 0) game.goPlay(0);
 else game.goMenu();

@@ -41,7 +41,7 @@ const MOVE_TIME = 0.16;
 const BAR_Y = 415;
 
 interface Flash {
-  kind: 'arrow' | 'stab' | 'bite' | 'charge' | 'heal';
+  kind: 'arrow' | 'stab' | 'bite' | 'charge' | 'heal' | 'woke';
   from: Pt;
   to: Pt;
   t: number;
@@ -249,6 +249,11 @@ export class PlayScene implements Scene {
         this.hurtT = 1;
         sound = 'hurt';
       } else if (e.type === 'healed') sound = 'heal';
+      else if (e.type === 'woke') {
+        const c = center(e.at.x, e.at.y);
+        this.flashes.push({ kind: 'woke', from: c, to: c, t: 0 });
+        sound = 'bump';
+      }
     }
     this.game.audio.play(sound);
   }
@@ -499,6 +504,16 @@ function drawFlash(ctx: CanvasRenderingContext2D, f: Flash): void {
   const a = 1 - f.t / 0.5;
   ctx.save();
   ctx.globalAlpha = a;
+  if (f.kind === 'woke') {
+    // A wolf wakes: "!" pops up over it.
+    ctx.fillStyle = C.gold;
+    ctx.font = `900 ${14 + 6 * Math.min(1, f.t * 6)}px system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('!', f.from.x + 12, f.from.y - 20 - f.t * 10);
+    ctx.restore();
+    return;
+  }
   if (f.kind === 'arrow') {
     const k = Math.min(1, f.t / 0.2);
     const x = f.from.x + (f.to.x - f.from.x) * k;
