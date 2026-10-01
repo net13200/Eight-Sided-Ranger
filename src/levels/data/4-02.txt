@@ -1,0 +1,11 @@
+id: 4-02
+name: Old Guard
+par: 9
+hint: Wolves, and a stag to mind
+loadout: Leaf Leaf Knife Bow Leaf Leaf Leaf Leaf
+teaches: stag,knife
+---
+.....
+.w.>.
+..w.s
+...@~

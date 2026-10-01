@@ -25,7 +25,8 @@ export type Tile =
   | 'snare'
   | 'currentE'
   | 'currentW'
-  | 'pad';
+  | 'pad'
+  | 'fern';
 
 export const TILE_GLYPH: Readonly<Record<string, Tile>> = {
   '.': 'grass',
@@ -38,6 +39,7 @@ export const TILE_GLYPH: Readonly<Record<string, Tile>> = {
   '}': 'currentE',
   '{': 'currentW',
   o: 'pad',
+  f: 'fern',
 };
 
 /** Tiles the die can stand on. */
@@ -47,7 +49,7 @@ export function walkable(t: Tile): boolean {
 
 /** Tiles wolves walk on: not currents (they'd be swept off) or lily pads (they'd sink). */
 export function wolfWalkable(t: Tile): boolean {
-  return t === 'grass' || t === 'exit' || t === 'spring' || t === 'snare';
+  return t === 'grass' || t === 'exit' || t === 'spring' || t === 'snare' || t === 'fern';
 }
 
 /** A current's direction along the row, or null. */
@@ -62,7 +64,7 @@ export function seeThrough(t: Tile): boolean {
 
 // ---------- state ----------
 
-export type EnemyKind = 'wolf' | 'stag';
+export type EnemyKind = 'wolf' | 'stag' | 'boar';
 
 export interface Enemy {
   readonly id: number;
@@ -74,6 +76,8 @@ export interface Enemy {
   readonly snared: number;
   /** A sleeping wolf: still until the Ranger comes within two rolls (unseen) or hurts it. */
   readonly asleep?: boolean;
+  /** Blown back by the Horn this turn: it loses its action. */
+  readonly startled?: boolean;
 }
 
 export interface Level {
@@ -110,7 +114,7 @@ export interface State {
 }
 
 export const MAX_HP = 3;
-export const ENEMY_HP: Readonly<Record<EnemyKind, number>> = { wolf: 2, stag: 3 };
+export const ENEMY_HP: Readonly<Record<EnemyKind, number>> = { wolf: 2, stag: 3, boar: 2 };
 export const SNARE_TURNS = 3;
 
 export function startState(level: Level): State {
@@ -134,9 +138,9 @@ export function tileAt(s: Pick<State, 'tiles' | 'level'>, x: number, y: number):
 
 const enemyAt = (s: State, x: number, y: number) => s.enemies.find((e) => e.x === x && e.y === y);
 
-/** The top face is the Cloak: nobody can see you. */
+/** The top face is the Cloak, or the Ranger stands in a fern: nobody can see them. */
 export function hidden(s: State): boolean {
-  return faceAt(s.level.loadout, s.orient, T) === 'Cloak';
+  return faceAt(s.level.loadout, s.orient, T) === 'Cloak' || tileAt(s, s.x, s.y) === 'fern';
 }
 
 // ---------- events (for animation and sound) ----------
@@ -155,6 +159,8 @@ export type GameEvent =
   | { type: 'healed'; hp: number }
   | { type: 'woke'; id: number; at: Pos }
   | { type: 'carried'; from: Pos; to: Pos }
+  | { type: 'pushed'; id: number; from: Pos; to: Pos }
+  | { type: 'gored'; id: number; from: Pos }
   | { type: 'sank'; at: Pos }
   | { type: 'won' }
   | { type: 'lost' };
@@ -194,6 +200,41 @@ function hurt(
   } else enemies[i] = { ...e, hp: e.hp - dmg, asleep: false };
 }
 
+/**
+ * The Horn's blast: the animal at `at` is pushed one triangle further along
+ * the row, if it can stand there. A snare there catches it; a sleeper wakes.
+ * Returns whether it moved.
+ */
+function push(
+  s: State,
+  enemies: Enemy[],
+  tiles: readonly Tile[],
+  at: Pos,
+  row: 'E' | 'W',
+  events: GameEvent[],
+): readonly Tile[] | null {
+  const k = enemies.findIndex((e) => e.x === at.x && e.y === at.y);
+  const e = enemies[k];
+  if (!e) return null;
+  const to = { x: at.x + (row === 'E' ? 1 : -1), y: at.y };
+  const t = tileAt({ tiles, level: s.level }, to.x, to.y);
+  if (!t || !wolfWalkable(t) || t === 'exit' || enemies.some((o) => o.x === to.x && o.y === to.y))
+    return null;
+  const onSnare = t === 'snare';
+  enemies[k] = {
+    ...e,
+    x: to.x,
+    y: to.y,
+    asleep: false,
+    startled: true,
+    snared: onSnare ? SNARE_TURNS : e.snared,
+  };
+  events.push({ type: 'pushed', id: e.id, from: at, to });
+  if (!onSnare) return tiles;
+  events.push({ type: 'snared', id: e.id, at: to });
+  return tiles.map((tt, i) => (i === to.y * s.level.width + to.x ? 'grass' : tt));
+}
+
 export function step(s: State, dir: Dir): StepResult {
   const bump: StepResult = { state: s, events: [{ type: 'bumped', dir }], consumed: false };
   if (s.status !== 'playing') return bump;
@@ -221,6 +262,25 @@ export function step(s: State, dir: Dir): StepResult {
       );
       hurt(enemies, target.id, dmg, events, target.kind, n);
       acted = true;
+    } else if (face === 'Horn' && row) {
+      const pushed = push(s, enemies, tiles, n, row, events);
+      if (pushed) {
+        tiles = pushed;
+        acted = true;
+      }
+    }
+  } else if (face === 'Horn' && row) {
+    // The Horn's blast along the row pushes the first animal one triangle away.
+    for (const c of along(s, x, y, row)) {
+      if (enemyAt(s, c.x, c.y)) {
+        const pushed = push(s, enemies, tiles, c, row, events);
+        if (pushed) {
+          tiles = pushed;
+          acted = true;
+        }
+        break;
+      }
+      if (!seeThrough(c.t)) break;
     }
   } else if (face === 'Bow' && row) {
     // An arrow along the row, over grass and water, to the first thing in the way.
@@ -329,6 +389,10 @@ function enemyPhase(s: State, events: GameEvent[]): State {
   const unseen = hidden(s);
   for (let k = 0; k < enemies.length; k++) {
     const e = enemies[k]!;
+    if (e.startled) {
+      enemies[k] = { ...e, startled: false };
+      continue;
+    }
     if (e.snared > 0) {
       enemies[k] = { ...e, snared: e.snared - 1 };
       continue;
@@ -347,6 +411,34 @@ function enemyPhase(s: State, events: GameEvent[]): State {
       if (e.y === s.y && clearRow(cur, e, s.x)) {
         hp -= 1;
         events.push({ type: 'charged', id: e.id, from: { x: e.x, y: e.y } });
+      }
+    } else if (e.kind === 'boar') {
+      // In the Ranger's row with a clear line: it charges along the row to them.
+      if (e.y !== s.y || !clearRow(cur, e, s.x)) continue;
+      const step1 = s.x > e.x ? 1 : -1;
+      let bx = e.x;
+      let caught = false;
+      while (Math.abs(s.x - bx) > 1) {
+        const nt = tileAt(cur, bx + step1, e.y)!;
+        if (!wolfWalkable(nt)) break;
+        bx += step1;
+        if (nt === 'snare') {
+          caught = true;
+          break;
+        }
+      }
+      if (bx !== e.x) {
+        const to = { x: bx, y: e.y };
+        events.push({ type: 'enemyMoved', id: e.id, from: { x: e.x, y: e.y }, to });
+        enemies[k] = { ...e, x: bx, snared: caught ? SNARE_TURNS : 0 };
+        if (caught) {
+          tiles = tiles.map((tt, i) => (i === e.y * s.level.width + bx ? 'grass' : tt));
+          events.push({ type: 'snared', id: e.id, at: to });
+        }
+      }
+      if (!caught && Math.abs(s.x - bx) === 1) {
+        hp -= 1;
+        events.push({ type: 'gored', id: e.id, from: { x: bx, y: e.y } });
       }
     } else if (adjacent(e.x, e.y, s.x, s.y)) {
       hp -= 1;

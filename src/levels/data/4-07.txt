@@ -1,0 +1,10 @@
+id: 4-07
+name: Boar Ground
+par: 7
+hint: A boar charges down its row
+loadout: Leaf Leaf Knife Leaf Leaf Leaf Leaf Leaf
+teaches: boar
+---
+.......
+.......
+b>....@

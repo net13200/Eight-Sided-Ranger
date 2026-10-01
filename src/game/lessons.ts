@@ -93,5 +93,32 @@ export const FACE_INFO: Readonly<Record<string, string>> = {
   Cloak: tk('On top: nobody can see you.'),
   Boots: tk('Leap over the next triangle in the row.'),
   Herb: tk('Face-down on a spring: heal 1.'),
+  Horn: tk('Blows the first animal in the row one triangle back. It loses its turn.'),
   Leaf: tk('Just a leaf.'),
 };
+
+/** Lessons for Antler Meadow. */
+Object.assign(LESSONS, {
+  '4-01': {
+    title: tk('Stags'),
+    text: tk(
+      'A stag never moves, but end your roll anywhere in its row with nothing between you and it strikes: 1 damage. Trees and water block its view along the row.',
+    ),
+  },
+  '4-03': {
+    title: tk('Ferns'),
+    text: tk('Stand in a fern and nobody sees you: wolves lose your trail and stags hold still.'),
+  },
+  '4-05': {
+    title: tk('The Horn'),
+    text: tk(
+      'Roll the Horn along your row toward an animal and, instead of rolling, you blow it: the first animal in the row is pushed one triangle further away and, startled, loses its turn. Into a snare is even better.',
+    ),
+  },
+  '4-07': {
+    title: tk('Boars'),
+    text: tk(
+      'A boar charges along its row when it sees you, stops right beside you and gores you. Get out of its row, or let a snare stop the charge.',
+    ),
+  },
+} satisfies Record<string, Lesson>);

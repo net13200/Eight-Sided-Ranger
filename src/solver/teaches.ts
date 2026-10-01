@@ -4,12 +4,20 @@
  * - a face: the par route uses it, and the level can't be won without it
  *   (the face swapped for a blank Leaf);
  * - a creature: it shapes the route (without it, par would be shorter);
- * - a tile: the par route uses it, and without it (plain water instead) the
+ * - a tile: the par route uses it, and without it (plain water, or grass, instead) the
  *   level can't be won, or takes longer.
  * Used by tests and tools, not the game.
  */
 import type { Dir } from '../engine/die';
-import { hidden, startState, step, type Level, type State, type Tile } from '../engine/rules';
+import {
+  hidden,
+  startState,
+  step,
+  tileAt,
+  type Level,
+  type State,
+  type Tile,
+} from '../engine/rules';
 import { solve } from './solve';
 
 type Enemy = Level['enemies'][number];
@@ -28,6 +36,8 @@ interface TileTeach {
   readonly kind: 'tile';
   readonly tiles: readonly Tile[];
   readonly used: (f: Facts) => number;
+  /** What stands in its place in the check (plain water unless said). */
+  readonly instead?: Tile;
 }
 
 const face = (name: string, used: (f: Facts) => number): FaceTeach => ({
@@ -44,10 +54,13 @@ export const TEACH_SPECS = {
   boots: face('Boots', (f) => f.leaps),
   cloak: face('Cloak', (f) => f.cloaked),
   herb: face('Herb', (f) => f.heals),
+  horn: face('Horn', (f) => f.pushes),
   stag: { kind: 'creature', is: (e: Enemy) => e.kind === 'stag' },
   sleeper: { kind: 'creature', is: (e: Enemy) => !!e.asleep },
+  boar: { kind: 'creature', is: (e: Enemy) => e.kind === 'boar' },
   current: { kind: 'tile', tiles: ['currentE', 'currentW'], used: (f: Facts) => f.carried },
   pad: { kind: 'tile', tiles: ['pad'], used: (f: Facts) => f.sank },
+  fern: { kind: 'tile', tiles: ['fern'], used: (f: Facts) => f.ferns, instead: 'grass' },
 } as const satisfies Record<string, FaceTeach | CreatureTeach | TileTeach>;
 
 export const TEACHES = [
@@ -75,6 +88,8 @@ export function routeFacts(level: Level, path: readonly Dir[]) {
     heals: 0,
     carried: 0,
     sank: 0,
+    pushes: 0,
+    ferns: 0,
   };
   let s: State = startState(level);
   for (const d of path) {
@@ -88,6 +103,7 @@ export function routeFacts(level: Level, path: readonly Dir[]) {
       if (e.type === 'healed') f.heals++;
       if (e.type === 'carried') f.carried++;
       if (e.type === 'sank') f.sank++;
+      if (e.type === 'pushed') f.pushes++;
     }
     // Hidden while an enemy that could act is around.
     if (
@@ -96,6 +112,13 @@ export function routeFacts(level: Level, path: readonly Dir[]) {
       r.state.enemies.some((e) => e.snared === 0)
     )
       f.cloaked++;
+    // Hiding in a fern while an enemy that could act is around.
+    if (
+      r.state.status === 'playing' &&
+      tileAt(r.state, r.state.x, r.state.y) === 'fern' &&
+      r.state.enemies.some((e) => e.snared === 0)
+    )
+      f.ferns++;
     s = r.state;
   }
   return f;
@@ -112,7 +135,8 @@ export function without(level: Level, teach: Exclude<Teach, 'roll'>): Level {
   if (spec.kind === 'face') return withoutFace(level, spec.face);
   if (spec.kind === 'creature')
     return { ...level, enemies: level.enemies.filter((e) => !spec.is(e)) };
-  return { ...level, tiles: level.tiles.map((t) => (spec.tiles.includes(t) ? 'water' : t)) };
+  const instead = spec.instead ?? 'water';
+  return { ...level, tiles: level.tiles.map((t) => (spec.tiles.includes(t) ? instead : t)) };
 }
 
 /** How much the route uses a teach's thing (creatures: always 1, they're judged by the route). */

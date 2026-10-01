@@ -1,0 +1,11 @@
+id: 4-04
+name: Under the Fronds
+par: 9
+hint: Ferns hide you from stags too
+loadout: Leaf Leaf Knife Leaf Leaf Leaf Leaf Leaf
+teaches: fern,stag
+---
+.......
+..>....
+..s##..
+s..@f..

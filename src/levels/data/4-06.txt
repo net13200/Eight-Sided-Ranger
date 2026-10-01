@@ -1,0 +1,13 @@
+id: 4-06
+name: Blown Into Snares
+par: 13
+hint: Push them where you want them
+loadout: Leaf Horn Knife Leaf Leaf Trap Leaf Leaf
+teaches: horn,trap
+---
+@....
+...~w
+#....
+#.w..
+....w
+>....

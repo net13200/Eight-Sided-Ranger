@@ -1,0 +1,10 @@
+id: 4-05
+name: The Horn
+par: 8
+hint: Blow it along the row
+loadout: Leaf Leaf Leaf Horn Leaf Leaf Leaf Leaf
+teaches: horn
+---
+..~>.
+~~~.w
+##@..

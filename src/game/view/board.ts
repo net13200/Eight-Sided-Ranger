@@ -134,6 +134,7 @@ const ROLE: Readonly<Record<string, string>> = {
   Boots: '#7fc9b5',
   Cloak: '#a893e0',
   Herb: '#8fd07a',
+  Horn: '#e8c46a',
   Leaf: '#e6e0c8',
 };
 export const faceColor = (face: string): string => ROLE[face] ?? '#d9d2e8';
@@ -163,9 +164,10 @@ export function drawForest(ctx: Ctx, s: State, t: number): void {
   ctx.fillRect(0, 0, 340, 480);
   for (let y = 0; y < height; y++)
     for (let x = 0; x < width; x++) drawTile(ctx, tileAt(s, x, y)!, x, y, t, look);
-  // The stags' rows are dangerous (unless the Cloak hides you).
+  // Stags' and boars' rows are dangerous (unless you're hidden).
   if (!hidden(s))
-    for (const e of s.enemies) if (e.kind === 'stag' && e.snared === 0) drawLane(ctx, s, e);
+    for (const e of s.enemies)
+      if ((e.kind === 'stag' || e.kind === 'boar') && e.snared === 0) drawLane(ctx, s, e);
 }
 
 function drawTile(
@@ -276,6 +278,39 @@ function drawTile(
       ctx.fillText('+', m.x, m.y);
       break;
     }
+    case 'fern': {
+      // A deep clump of fronds the Ranger can crouch in.
+      tri(ctx, c, 0.12);
+      ctx.fillStyle = '#2f6236';
+      ctx.fill();
+      ctx.lineCap = 'round';
+      for (const a of [-1.15, -0.6, 0, 0.6, 1.15]) {
+        const tx = m.x + Math.sin(a) * 15;
+        const ty = m.y + 6 - Math.cos(a) * 18;
+        ctx.strokeStyle = '#9be07f';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(m.x, m.y + 6);
+        ctx.quadraticCurveTo(m.x + Math.sin(a) * 5, m.y - 3, tx, ty);
+        ctx.stroke();
+        // Leaflets down each frond.
+        ctx.lineWidth = 1.4;
+        ctx.strokeStyle = '#78c860';
+        ctx.beginPath();
+        for (let k = 0.35; k < 1; k += 0.22) {
+          const px = m.x + (tx - m.x) * k;
+          const py = m.y + 6 + (ty - m.y - 6) * k;
+          const len = 5 * (1.1 - k);
+          ctx.moveTo(px, py);
+          ctx.lineTo(px - Math.cos(a) * len, py - Math.sin(a) * len - 1.5);
+          ctx.moveTo(px, py);
+          ctx.lineTo(px + Math.cos(a) * len, py + Math.sin(a) * len - 1.5);
+        }
+        ctx.stroke();
+      }
+      ctx.lineCap = 'butt';
+      break;
+    }
     case 'snare':
       ctx.strokeStyle = '#d9b27c';
       ctx.lineWidth = 2;
@@ -323,6 +358,7 @@ function drawLane(ctx: Ctx, s: State, e: Enemy): void {
     for (let x = e.x + dir; ; x += dir) {
       const t = tileAt(s, x, e.y);
       if (!t || !seeThrough(t) || s.enemies.some((o) => o.x === x && o.y === e.y)) break;
+      if (t === 'fern') continue; // safe to stand in, though it sees past
       tri(ctx, corners(x, e.y), 0.05);
       ctx.fillStyle = FOREST.danger;
       ctx.fill();
@@ -388,6 +424,49 @@ export function drawEnemy(ctx: Ctx, e: Enemy, p: Pt, t: number): void {
     }
     ctx.fillStyle = '#2b2d33';
     ctx.fillRect(-1.5, 3 + bob, 3, 2);
+  } else if (e.kind === 'boar') {
+    // The boar: a low bristly head, tusks and a snout.
+    ctx.fillStyle = '#6b4a35';
+    ctx.strokeStyle = '#24160c';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-10, -2 + bob);
+    ctx.lineTo(-8, -10 + bob);
+    ctx.lineTo(-4, -6 + bob);
+    ctx.lineTo(4, -6 + bob);
+    ctx.lineTo(8, -10 + bob);
+    ctx.lineTo(10, -2 + bob);
+    ctx.lineTo(7, 8 + bob);
+    ctx.lineTo(-7, 8 + bob);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    // Bristles along the brow.
+    ctx.beginPath();
+    for (let i = -3; i <= 3; i += 2) {
+      ctx.moveTo(i * 1.6, -6 + bob);
+      ctx.lineTo(i * 1.9, -10 + bob);
+    }
+    ctx.stroke();
+    ctx.fillStyle = '#c98f7a';
+    ctx.beginPath();
+    ctx.ellipse(0, 4 + bob, 4.5, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#24160c';
+    ctx.fillRect(-2, 3 + bob, 1.4, 2);
+    ctx.fillRect(0.6, 3 + bob, 1.4, 2);
+    ctx.fillStyle = '#ff8a3c';
+    ctx.fillRect(-5.5, -3 + bob, 2.5, 2);
+    ctx.fillRect(3, -3 + bob, 2.5, 2);
+    ctx.strokeStyle = '#f3ead2';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    for (const sx of [-1, 1]) {
+      ctx.moveTo(sx * 5, 6 + bob);
+      ctx.quadraticCurveTo(sx * 8, 5 + bob, sx * 8, 1 + bob);
+    }
+    ctx.stroke();
   } else {
     // The stag: a proud head and antlers.
     ctx.strokeStyle = '#5a3a1a';
@@ -649,6 +728,25 @@ export function drawFaceIcon(ctx: Ctx, face: string, x: number, y: number, size:
         ctx.ellipse(sx * 0.28, dy, 0.28, 0.14, sx * -0.5, 0, Math.PI * 2);
         fill('#6fbf4f');
       }
+      break;
+    case 'Horn':
+      // A curved hunting horn, bell to the right.
+      ctx.beginPath();
+      ctx.moveTo(-0.75, -0.35);
+      ctx.quadraticCurveTo(-0.2, 0.55, 0.6, -0.05);
+      ctx.lineTo(0.78, -0.6);
+      ctx.lineTo(0.25, -0.38);
+      ctx.quadraticCurveTo(-0.25, -0.05, -0.62, -0.5);
+      ctx.closePath();
+      fill('#e8c46a');
+      ctx.beginPath();
+      ctx.moveTo(0.42, -0.2);
+      ctx.lineTo(0.62, -0.5);
+      stroke('#8a5a1a', 0.08);
+      ctx.beginPath();
+      ctx.moveTo(-0.65, -0.42);
+      ctx.lineTo(-0.82, -0.3);
+      stroke('#5a3a1a', 0.16);
       break;
     case 'Leaf':
       ctx.beginPath();

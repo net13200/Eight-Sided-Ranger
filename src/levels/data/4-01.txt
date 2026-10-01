@@ -1,0 +1,10 @@
+id: 4-01
+name: Antler Row
+par: 8
+hint: A stag strikes down a clear row
+loadout: Leaf Leaf Leaf Leaf Leaf Leaf Leaf Leaf
+teaches: stag
+---
+......
+...#.>
+..@..s

@@ -163,6 +163,41 @@ describe('rules', () => {
     expect(w.enemies[0]!.x).toBe(5); // the pad is in its way: it waits
   });
 
+  it('standing in a fern hides you: the wolf loses your trail, the stag holds still', () => {
+    const s = play(LV('@f...w'), 'E');
+    expect(s.enemies[0]!.x).toBe(5);
+    const st = play(LV('@f...s'), 'E');
+    expect(st.hp).toBe(3);
+  });
+
+  it('the Horn pushes the first animal in the row one triangle away, into a snare too', () => {
+    const s = play(LV('@..w..', facing('Horn')), 'E');
+    expect(s.x).toBe(0); // the die stays
+    expect(s.enemies[0]!.x).toBe(4);
+    const snared = play(LV('@..wx.', facing('Horn')), 'E');
+    expect(snared.enemies[0]).toMatchObject({ x: 4, snared: 3 });
+  });
+
+  it('a Horn with nothing to push (or a tree behind the animal) just rolls', () => {
+    expect(play(LV('@.....', facing('Horn')), 'E').x).toBe(1);
+    expect(play(LV('@..w#.', facing('Horn')), 'E').x).toBe(1);
+  });
+
+  it('a boar charges along the row to you and hits; water stops it', () => {
+    const s = play(LV('..@.....b'), 'W');
+    expect(s.enemies[0]!.x).toBe(2);
+    expect(s.hp).toBe(2);
+    const wet = play(LV('..@...~.b'), 'W');
+    expect(wet.enemies[0]!.x).toBe(7);
+    expect(wet.hp).toBe(3);
+  });
+
+  it('a boar that charges into a snare is caught short', () => {
+    const s = play(LV('.@.x....b'.replace('.@', '@.')), 'E');
+    expect(s.enemies[0]).toMatchObject({ x: 3, snared: 3 });
+    expect(s.hp).toBe(3);
+  });
+
   it('the Bow shoots along the row, over water; a wolf takes two arrows', () => {
     let s = LV('@.~~.w.#', facing('Bow'));
     s = play(s, 'E');

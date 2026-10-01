@@ -41,7 +41,7 @@ const MOVE_TIME = 0.16;
 const BAR_Y = 415;
 
 interface Flash {
-  kind: 'arrow' | 'stab' | 'bite' | 'charge' | 'heal' | 'woke';
+  kind: 'arrow' | 'stab' | 'bite' | 'charge' | 'heal' | 'woke' | 'horn';
   from: Pt;
   to: Pt;
   t: number;
@@ -240,7 +240,15 @@ export class PlayScene implements Scene {
       else if (e.type === 'carried') sound = 'swing';
       else if (e.type === 'sank') sound = 'bump';
       else if (e.type === 'snareLaid' || e.type === 'snared') sound = 'snare';
-      else if (e.type === 'bitten' || e.type === 'charged') {
+      else if (e.type === 'pushed') {
+        this.flashes.push({
+          kind: 'horn',
+          from: center(this.state.x, this.state.y),
+          to: center(e.to.x, e.to.y),
+          t: 0,
+        });
+        sound = 'horn';
+      } else if (e.type === 'bitten' || e.type === 'charged' || e.type === 'gored') {
         const c = center(e.from.x, e.from.y);
         this.flashes.push({
           kind: e.type === 'bitten' ? 'bite' : 'charge',
@@ -513,6 +521,22 @@ function drawFlash(ctx: CanvasRenderingContext2D, f: Flash): void {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('!', f.from.x + 12, f.from.y - 20 - f.t * 10);
+    ctx.restore();
+    return;
+  }
+  if (f.kind === 'horn') {
+    // Rings of sound rolling out along the row toward the animal.
+    const dir = Math.sign(f.to.x - f.from.x) || 1;
+    ctx.strokeStyle = C.gold;
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 3; i++) {
+      const k = Math.min(1, f.t * 3 + i * 0.2);
+      const x = f.from.x + (f.to.x - f.from.x) * k;
+      const facing = dir > 0 ? 0 : Math.PI;
+      ctx.beginPath();
+      ctx.arc(x - dir * 6, f.from.y, 6 + i * 3, facing - 0.9, facing + 0.9);
+      ctx.stroke();
+    }
     ctx.restore();
     return;
   }

@@ -1,0 +1,11 @@
+id: 4-08
+name: Rooting
+par: 10
+hint: A snare stops a charge
+loadout: Leaf Leaf Knife Leaf Leaf Trap Leaf Leaf
+teaches: boar,trap
+---
+####>
+#..b.
+....#
+.@###

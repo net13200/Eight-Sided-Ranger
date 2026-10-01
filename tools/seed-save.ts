@@ -6,23 +6,33 @@
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { parseLevel } from '../src/engine';
-import { fingerprint } from '../src/meta/progress';
+import { fingerprint, runPar } from '../src/meta/progress';
+import { withFloors } from '../src/levels/floors';
 import { freshSave } from '../src/meta/save';
 
 const [n = '0', starList = ''] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const unseen = process.argv.includes('--unseen');
 const stars = starList.split(',').filter(Boolean).map(Number);
 const dir = 'src/levels/data';
-const levels = readdirSync(dir)
-  .filter((f) => f.endsWith('.txt'))
-  .sort()
-  .map((f) => parseLevel(readFileSync(`${dir}/${f}`, 'utf8')));
+const gdir = 'src/levels/gauntlets';
+const floors = Object.fromEntries(
+  readdirSync(gdir)
+    .filter((f) => f.endsWith('.txt'))
+    .map((f) => [f, readFileSync(`${gdir}/${f}`, 'utf8')]),
+);
+const levels = withFloors(
+  readdirSync(dir)
+    .filter((f) => f.endsWith('.txt'))
+    .sort()
+    .map((f) => parseLevel(readFileSync(`${dir}/${f}`, 'utf8'))),
+  floors,
+);
 const save = freshSave();
 for (let i = 0; i < Number(n); i++) {
   const lv = levels[i]!;
   save.levels[lv.id] = {
     stars: stars[i] ?? 3,
-    bestMoves: lv.par ?? 0,
+    bestMoves: runPar(lv) ?? 0,
     completions: 1,
     fp: fingerprint(lv),
   };

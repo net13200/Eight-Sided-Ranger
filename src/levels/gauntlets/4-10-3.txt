@@ -1,0 +1,11 @@
+id: 4-10-3
+name: Antler Meadow: the gate
+par: 11
+hint: From 1 HP: one step each
+hp: 1
+loadout: Leaf Horn Knife Bow Leaf Trap Leaf Leaf
+teaches: horn
+---
+####....
+w>.x...@
+.....~w.

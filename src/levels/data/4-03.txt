@@ -1,0 +1,12 @@
+id: 4-03
+name: Fernbed
+par: 9
+hint: Nobody sees you in a fern
+loadout: Leaf Leaf Leaf Leaf Leaf Leaf Leaf Leaf
+teaches: fern
+---
+...w.
+.....
+@fw..
+#~#..
+###>.

@@ -12,6 +12,7 @@ export type SfxName =
   | 'hit'
   | 'kill'
   | 'swing'
+  | 'horn'
   | 'leap'
   | 'snare'
   | 'hurt'
@@ -214,6 +215,12 @@ export class Audio {
         // The rope's whoosh.
         this.noiseHit(t, 0.28, 900, 0.18);
         this.tone(t, 'sine', 260, 520, 0.26, 0.06);
+        break;
+      case 'horn':
+        // A short hunting call: a fifth, rising into the held note.
+        this.tone(t, 'sawtooth', 196, 220, 0.14, 0.07);
+        this.tone(t + 0.12, 'triangle', 294, 294, 0.4, 0.12);
+        this.tone(t + 0.12, 'sine', 588, 588, 0.35, 0.04);
         break;
       case 'leap':
         this.tone(t, 'triangle', 330, 660, 0.12, 0.12);
