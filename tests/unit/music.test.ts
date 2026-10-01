@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import { MusicPlayer, TRACKS, noteTimes, playsOnPass } from '../../src/game/music';
+import { CHIME_PARTIALS, MusicPlayer, TRACKS, noteTimes, playsOnPass } from '../../src/game/music';
 
 describe('background music', () => {
+  it('the chime is in tune: every overtone a whole multiple of its note', () => {
+    for (const [ratio] of CHIME_PARTIALS) expect(Number.isInteger(ratio)).toBe(true);
+  });
+
   for (const [id, track] of Object.entries(TRACKS)) {
     it(`${id}: every note fits in the loop and every pass has music`, () => {
       for (const part of track.parts) {

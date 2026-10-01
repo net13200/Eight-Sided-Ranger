@@ -3,7 +3,7 @@
  * Six Sided Knight's, in a forest arrangement with an Elvish touch: a flute
  * with grace-note ornaments and a slow, wide vibrato instead of the
  * recorder, a ringing harp instead of the lute, a wordless choir ("ah")
- * instead of the plain pad, high chimes, no marching drum, a slower tempo
+ * instead of the plain pad, soft celesta chimes, no marching drum, a slower tempo
  * and a long echo, like a hall of trees.
  *
  * Tracks:
@@ -266,7 +266,7 @@ export const STONES: Track = {
     {
       voice: 'chime',
       gain: 0.25,
-      notes: [...shift(PUZZLE_BELLS, 0, 0, 0.6), ...shift(PUZZLE_BELLS, 64, 12)],
+      notes: [...shift(PUZZLE_BELLS, 0, 0, 0.6), ...shift(PUZZLE_BELLS, 64, 0, 0.8)],
       passes: [0, 2],
     },
     {
@@ -289,6 +289,17 @@ export const TRACKS = { glade: GLADE, stones: STONES } as const;
 export type TrackId = keyof typeof TRACKS;
 
 // ---------- instruments ----------
+
+/**
+ * The chime's overtones: [multiple of the note's pitch, loudness, decay in
+ * seconds]. Whole-number multiples only, so every overtone is in tune (the
+ * first version used 2.4 and 4.1, like metal chimes, and sounded sour).
+ */
+export const CHIME_PARTIALS: readonly (readonly [number, number, number])[] = [
+  [1, 1, 2.2],
+  [2, 0.22, 1],
+  [3, 0.06, 0.45],
+];
 
 /** Schedules one note. Works with live and offline audio contexts. */
 export function playVoice(
@@ -441,15 +452,12 @@ export function playVoice(
       break;
     }
     case 'chime': {
-      // High wind chimes: bright partials with long, staggered decays.
-      for (const [ratio, amp, decay] of [
-        [1, 1, 3],
-        [2.4, 0.3, 1.4],
-        [4.1, 0.12, 0.7],
-      ] as const) {
+      // A soft celesta: in-tune overtones (an octave and a fifth above), each
+      // dying away faster than the one below.
+      for (const [ratio, amp, decay] of CHIME_PARTIALS) {
         const g = ctx.createGain();
         const o = osc('sine', f * ratio);
-        const end = env(g, 0.004, vol * amp, decay);
+        const end = env(g, 0.006, vol * amp, decay);
         o.connect(g).connect(out);
         o.start(t);
         o.stop(end);
