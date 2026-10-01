@@ -1,0 +1,40 @@
+{
+  "name": "eight-sided-ranger",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A puzzle game where you are an eight-sided die rolling through the Greenwood.",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm test",
+    "validate-levels": "tsx tools/validate.ts",
+    "solve": "tsx tools/solve.ts",
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "build:crazygames": "tsc --noEmit && vite build --mode crazygames && node tools/package-portal.mjs crazygames",
+    "preview": "vite preview",
+    "test:e2e": "playwright test",
+    "test:e2e:crazygames": "playwright test -c playwright.crazygames.config.ts",
+    "size": "node tools/check-size.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.2",
+    "eslint": "^10.11.0",
+    "prettier": "^3.9.8",
+    "tsx": "^4.23.15",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.70.1",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.1"
+  }
+}
