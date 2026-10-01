@@ -1,7 +1,28 @@
 import { describe, expect, it, vi } from 'vitest';
-import { CHIME_PARTIALS, MusicPlayer, TRACKS, noteTimes, playsOnPass } from '../../src/game/music';
+import {
+  CHIME_PARTIALS,
+  MusicPlayer,
+  TRACKS,
+  liftOf,
+  noteTimes,
+  playsOnPass,
+} from '../../src/game/music';
 
 describe('background music', () => {
+  it("the Ranger's falling leaf: eight notes, falling, in both tracks", () => {
+    for (const track of Object.values(TRACKS)) {
+      const leaf = track.parts.find((p) => p.notes.some(([s]) => s % 1 === 0.5))!;
+      const first = leaf.notes.slice(0, 8);
+      expect(first).toHaveLength(8);
+      for (let i = 1; i < 8; i++) expect(first[i]![1]).toBeLessThan(first[i - 1]![1]);
+    }
+  });
+
+  it('the title tune alternates between two keys: up a whole step, back down, up again', () => {
+    expect([0, 1, 2, 3, 4, 5].map((p) => liftOf(TRACKS.glade, p))).toEqual([0, 2, 0, 2, 0, 2]);
+    expect(liftOf(TRACKS.stones, 2)).toBe(0);
+  });
+
   it('the chime is in tune: every overtone a whole multiple of its note', () => {
     for (const [ratio] of CHIME_PARTIALS) expect(Number.isInteger(ratio)).toBe(true);
   });

@@ -40,6 +40,11 @@ export interface Track {
   /** Passes before the arrangement repeats exactly. */
   readonly cycle: number;
   readonly parts: readonly Part[];
+  /**
+   * Semitones to lift each pass of the cycle by (default: none). The title
+   * tune alternates between two keys: it rises a whole step, falls back, rises again.
+   */
+  readonly lift?: readonly number[];
   /** The chords, for the harmony test: steps per bar, and each bar's root and third (semitones). */
   readonly harmony: {
     readonly bar: number;
@@ -78,6 +83,20 @@ export function ornament(notes: readonly Note[], scale: readonly number[], minLe
 /** D dorian and A minor (natural), as pitch classes. */
 const D_DORIAN = [2, 4, 5, 7, 9, 11, 0];
 const A_MINOR = [9, 11, 0, 2, 4, 5, 7];
+
+/**
+ * The Ranger's signature: a falling leaf. Eight quick harp notes (one per
+ * side of the d8) tumble down from `top`, two to a step, starting at
+ * `start`. `notes` are the pitches, high to low, all gentle on the chord.
+ */
+export function fallingLeaf(start: number, notes: readonly number[]): Note[] {
+  return notes.map((m, i) => [start + i * 0.5, m, 2, 1 - i * 0.06] as Note);
+}
+
+/** Over D minor (the glade's last bar): D C A G F D C A. */
+const LEAF_D = [86, 84, 81, 79, 77, 74, 72, 69];
+/** Over A minor (the stones' last bar): E D C A G E D C. */
+const LEAF_A = [88, 86, 84, 81, 79, 76, 74, 72];
 
 // ---------- "Glade" (title): the Knight's "Hall of the Die" ----------
 
@@ -165,9 +184,13 @@ export const GLADE: Track = {
   step: 0.24,
   length: 96,
   // Pass 1 doubles the tune on chimes; pass 2 is harp and choir alone; pass 3
-  // brings the tune back an octave lower, softer.
+  // brings the tune back an octave lower, softer. Every other pass is lifted a
+  // whole step (D, E, D, E): the tune rises, falls back, and rises again.
   cycle: 4,
+  lift: [0, 2, 0, 2],
   parts: [
+    // A leaf falls as each half of the tune comes to rest.
+    { voice: 'harp', gain: 0.2, notes: [...fallingLeaf(43, LEAF_D), ...fallingLeaf(91, LEAF_D)] },
     { voice: 'flute', gain: 0.42, notes: TUNE, passes: [0, 1] },
     { voice: 'flute', gain: 0.3, notes: shift(TUNE, 0, -12), passes: [3] },
     {
@@ -262,6 +285,12 @@ export const STONES: Track = {
   // Pass 2: harp and chimes.
   cycle: 3,
   parts: [
+    // A leaf falls at the end of each half.
+    {
+      voice: 'harp',
+      gain: 0.22,
+      notes: [...fallingLeaf(59, LEAF_A), ...fallingLeaf(123, LEAF_A)],
+    },
     { voice: 'harp', gain: 0.44, notes: [...stonesHarp, ...shift(stonesHarp, 64)] },
     {
       voice: 'chime',
@@ -484,6 +513,11 @@ export function playsOnPass(part: Part, track: Track, pass: number): boolean {
 }
 
 /** Schedules one full pass of a track starting at time `t0`. Returns when it ends. */
+/** Semitones a pass is lifted by. */
+export function liftOf(track: Track, pass: number): number {
+  return track.lift?.[pass % track.cycle] ?? 0;
+}
+
 export function scheduleLoop(
   ctx: BaseAudioContext,
   out: AudioNode,
@@ -496,7 +530,17 @@ export function scheduleLoop(
     if (!playsOnPass(part, track, pass)) continue;
     for (const [s, m, l, v = 1] of part.notes) {
       if (s >= track.length) continue;
-      playVoice(ctx, out, noise, part.voice, m, t0 + s * track.step, l * track.step, part.gain * v);
+      const lifted = m === 0 ? m : m + liftOf(track, pass);
+      playVoice(
+        ctx,
+        out,
+        noise,
+        part.voice,
+        lifted,
+        t0 + s * track.step,
+        l * track.step,
+        part.gain * v,
+      );
     }
   }
   return t0 + track.length * track.step;
@@ -664,7 +708,7 @@ export class MusicPlayer {
         cur.gain,
         this.noise,
         e.part.voice,
-        midi,
+        midi === 0 ? 0 : midi + liftOf(track, cur.pass),
         t,
         len * track.step,
         e.part.gain * v,

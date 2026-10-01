@@ -41,7 +41,7 @@ async function render(id: TrackId, loops: number): Promise<string> {
   const room = createRoom(ctx, master);
   const noise = makeNoise(ctx);
   let t = 0.05;
-  for (let i = 0; i < loops; i++) t = scheduleLoop(ctx, room, noise, track, t);
+  for (let i = 0; i < loops; i++) t = scheduleLoop(ctx, room, noise, track, t, i);
   // Fade out the tail.
   master.gain.setValueAtTime(0.8, t - 1.5);
   master.gain.linearRampToValueAtTime(0, t + 1.5);
