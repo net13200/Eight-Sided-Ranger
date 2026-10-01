@@ -59,6 +59,32 @@ Object.assign(LESSONS, {
   },
 } satisfies Record<string, Lesson>);
 
+/** Lessons for the Braided River. */
+Object.assign(LESSONS, {
+  '3-01': {
+    title: tk('The Boots'),
+    text: tk(
+      'Roll the Boots toward the next triangle in your row and you leap over it: water, a snare, even a wolf. You land two triangles along.',
+    ),
+  },
+  '3-03': {
+    title: tk('The Rope'),
+    text: tk(
+      'Roll the Rope toward a post along your row, two to five triangles away, and you swing to the triangle before it, over water. The die doesn’t roll on the way.',
+    ),
+  },
+  '3-05': {
+    title: tk('Currents'),
+    text: tk(
+      'Land on a current and it carries you along the row, the way the arrows point, until you reach the bank. Your faces stay as they are.',
+    ),
+  },
+  '3-06': {
+    title: tk('Lily pads'),
+    text: tk('A lily pad holds you once. Step off, and it sinks behind you.'),
+  },
+} satisfies Record<string, Lesson>);
+
 export const FACE_INFO: Readonly<Record<string, string>> = {
   Bow: tk('Shoots along the row: 1 damage, over water.'),
   Knife: tk('Stabs an enemy next to you: 2 damage.'),

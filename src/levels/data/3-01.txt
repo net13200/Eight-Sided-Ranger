@@ -1,0 +1,11 @@
+id: 3-01
+name: Stepping Over
+par: 6
+hint: Boots leap the next triangle
+loadout: Leaf Leaf Leaf Boots Leaf Leaf Leaf Leaf
+teaches: boots
+---
+~~@~...
+~~~~...
+~.#~...
+~~~~>..

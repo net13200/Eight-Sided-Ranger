@@ -237,6 +237,8 @@ export class PlayScene implements Scene {
       } else if (e.type === 'killed') sound = 'kill';
       else if (e.type === 'moved' && e.swing) sound = 'swing';
       else if (e.type === 'moved' && e.leap) sound = 'leap';
+      else if (e.type === 'carried') sound = 'swing';
+      else if (e.type === 'sank') sound = 'bump';
       else if (e.type === 'snareLaid' || e.type === 'snared') sound = 'snare';
       else if (e.type === 'bitten' || e.type === 'charged') {
         const c = center(e.from.x, e.from.y);

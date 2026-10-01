@@ -14,11 +14,11 @@ import { readFileSync } from 'node:fs';
 import { parseLevel, startState, type Level } from '../src/engine';
 import { solve } from '../src/solver/solve';
 import {
-  FACE_TEACHES,
+  TEACH_SPECS,
   checkTeach,
   routeFacts,
-  withoutCreature,
-  withoutFace,
+  usage,
+  without,
   type Teach,
 } from '../src/solver/teaches';
 import { Rng } from './lib/rng';
@@ -29,7 +29,7 @@ const opt = (name: string, def: string) => {
   return i >= 0 ? (args[i + 1] ?? def) : def;
 };
 const [pMin, pMax] = opt('par', '6-14').split('-').map(Number) as [number, number];
-const teaches = opt('teach', '').split(',').filter(Boolean) as Teach[];
+const teaches = opt('teach', '').split(',').filter(Boolean) as Exclude<Teach, 'roll'>[];
 const palette = opt('palette', '..##~w');
 const W = Number(opt('width', '9'));
 const H = Number(opt('height', '6'));
@@ -38,7 +38,6 @@ const rng = new Rng(Number(opt('seed', '1')) >>> 0);
 const template = opt('template', '');
 const hp = opt('hp', '');
 const maxWolves = Number(opt('max-wolves', '99'));
-const FACE: Record<string, string> = FACE_TEACHES;
 
 type Grid = string[][];
 const toText = (g: Grid) =>
@@ -103,23 +102,13 @@ function score(g: Grid): Scored {
   let s = -out * 15 + r.moves * 0.1;
   const f = routeFacts(lv, r.path);
   for (const t of teaches) {
-    if (t === 'roll') continue;
-    if (t === 'stag' || t === 'sleeper') {
-      const w = solve(startState(withoutCreature(lv, t)), { maxNodes: 60_000 });
+    const w = solve(startState(without(lv, t)), { maxNodes: 60_000 });
+    if (TEACH_SPECS[t].kind === 'creature') {
+      // A creature should make the route longer.
       s += (w.status === 'solved' ? r.moves - w.moves : -5) * 10;
       continue;
     }
-    const used = {
-      bow: f.shots,
-      knife: f.stabs,
-      trap: f.snares,
-      rope: f.swings,
-      boots: f.leaps,
-      cloak: f.cloaked,
-      herb: f.heals,
-    }[t];
-    if (used) s += 30;
-    const w = solve(startState(withoutFace(lv, FACE[t]!)), { maxNodes: 60_000 });
+    if (usage(f, t)) s += 30;
     s += (w.status === 'unsolvable' ? 40 : w.status === 'budget' ? 20 : w.moves - r.moves) * 10;
   }
   const res = { score: s, done: false, par: r.moves, path: r.path.join('') };

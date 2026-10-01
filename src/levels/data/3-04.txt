@@ -1,0 +1,12 @@
+id: 3-04
+name: Ferry
+par: 9
+hint: The Rope doesn't turn the die
+loadout: Leaf Bow Rope Leaf Knife Leaf Leaf Leaf
+teaches: rope
+---
+@....~.Pw
+~~...#.>.
+~~~~~~...
+.~.~~~...
+.........

@@ -1,0 +1,12 @@
+id: 3-07
+name: Rapids
+par: 10
+hint: Ride, then leap
+loadout: Leaf Boots Knife Leaf Leaf Bow Leaf Leaf
+teaches: current,boots
+---
+.....{>~.
+......#~.
+....~..~~
+.@.~~~~~.
+....~....

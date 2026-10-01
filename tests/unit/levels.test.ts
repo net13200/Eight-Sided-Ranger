@@ -40,8 +40,7 @@ describe('levels', () => {
 
   const taught = new Set<string>(['Leaf']);
   for (const lv of all) {
-    for (const t of lv.teaches ?? [])
-      if (t in FACE_TEACHES) taught.add(FACE_TEACHES[t as keyof typeof FACE_TEACHES]);
+    for (const t of lv.teaches ?? []) if (FACE_TEACHES[t]) taught.add(FACE_TEACHES[t]!);
     const known = new Set(taught);
 
     it(`${lv.id} ${lv.name}: only taught faces on the die`, () => {

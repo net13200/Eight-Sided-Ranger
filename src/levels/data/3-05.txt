@@ -1,0 +1,11 @@
+id: 3-05
+name: Downstream
+par: 7
+hint: A current carries you along
+loadout: Leaf Leaf Leaf Leaf Leaf Leaf Leaf Leaf
+teaches: current
+---
+...~~~~~~
+...@}...~
+.....{~..
+....#~~>.

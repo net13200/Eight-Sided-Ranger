@@ -1,0 +1,12 @@
+id: 3-02
+name: Wide Water
+par: 10
+hint: Leap the water, not the wolf
+loadout: Leaf Knife Leaf Leaf Boots Bow Leaf Leaf
+teaches: boots
+---
+.......~.
+...@..~~w
+.....~~~~
+......~.~
+....~~~>~

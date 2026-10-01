@@ -1,0 +1,12 @@
+id: 3-10
+name: The Braided River
+par: 8
+hint: Three floors; HP carries over
+loadout: Leaf Boots Rope Bow Knife Leaf Leaf Leaf
+teaches: current
+---
+.........
+.........
+@...}.}..
+~~~~~..>.
+~~~~~~...

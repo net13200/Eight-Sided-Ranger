@@ -1,0 +1,11 @@
+id: 3-03
+name: The Post
+par: 7
+hint: Swing along the row to a post
+loadout: Leaf Leaf Rope Leaf Leaf Leaf Leaf Leaf
+teaches: rope
+---
+.....~.~~
+.....~~~~
+@...~~.P~
+....~~.>.

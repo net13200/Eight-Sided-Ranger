@@ -1,0 +1,13 @@
+id: 3-10-2
+name: The Braided River: pads
+par: 10
+hint: From 1 HP: one step each
+hp: 1
+loadout: Leaf Rope Boots Leaf Knife Bow Leaf Leaf
+teaches: pad
+---
+....>~~~~
+.....~~~~
+.#..@..~~
+......o~~
+.........

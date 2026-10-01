@@ -15,7 +15,17 @@ const T = SLOT.top;
 
 // ---------- tiles ----------
 
-export type Tile = 'grass' | 'tree' | 'water' | 'exit' | 'post' | 'spring' | 'snare';
+export type Tile =
+  | 'grass'
+  | 'tree'
+  | 'water'
+  | 'exit'
+  | 'post'
+  | 'spring'
+  | 'snare'
+  | 'currentE'
+  | 'currentW'
+  | 'pad';
 
 export const TILE_GLYPH: Readonly<Record<string, Tile>> = {
   '.': 'grass',
@@ -25,11 +35,24 @@ export const TILE_GLYPH: Readonly<Record<string, Tile>> = {
   P: 'post',
   '+': 'spring',
   x: 'snare',
+  '}': 'currentE',
+  '{': 'currentW',
+  o: 'pad',
 };
 
-/** Tiles the die and the wolves can stand on. */
+/** Tiles the die can stand on. */
 export function walkable(t: Tile): boolean {
+  return wolfWalkable(t) || t === 'currentE' || t === 'currentW' || t === 'pad';
+}
+
+/** Tiles wolves walk on: not currents (they'd be swept off) or lily pads (they'd sink). */
+export function wolfWalkable(t: Tile): boolean {
   return t === 'grass' || t === 'exit' || t === 'spring' || t === 'snare';
+}
+
+/** A current's direction along the row, or null. */
+export function currentDir(t: Tile | null): 'E' | 'W' | null {
+  return t === 'currentE' ? 'E' : t === 'currentW' ? 'W' : null;
 }
 
 /** Tiles an arrow (or a line of sight) passes over. */
@@ -131,6 +154,8 @@ export type GameEvent =
   | { type: 'charged'; id: number; from: Pos }
   | { type: 'healed'; hp: number }
   | { type: 'woke'; id: number; at: Pos }
+  | { type: 'carried'; from: Pos; to: Pos }
+  | { type: 'sank'; at: Pos }
   | { type: 'won' }
   | { type: 'lost' };
 
@@ -256,6 +281,25 @@ export function step(s: State, dir: Dir): StepResult {
   // Landing (only if the die moved).
   const moved = x !== s.x || y !== s.y;
   if (moved) {
+    // A lily pad left behind sinks.
+    if (tileAt(s, s.x, s.y) === 'pad') {
+      tiles = tiles.map((tt, i) => (i === s.y * s.level.width + s.x ? 'water' : tt));
+      events.push({ type: 'sank', at: { x: s.x, y: s.y } });
+    }
+    // A current carries the die along the row, faces unchanged, until it's off
+    // the current or something blocks the way.
+    // (At most a board's width: two currents facing each other just hold the die.)
+    for (
+      let flow = currentDir(tileAt(s, x, y)), n = 0;
+      flow && n < s.level.width;
+      flow = currentDir(tileAt(s, x, y)), n++
+    ) {
+      const nx = x + (flow === 'E' ? 1 : -1);
+      const nt = tileAt({ tiles, level: s.level }, nx, y);
+      if (!nt || !walkable(nt) || enemyAt(s, nx, y)) break;
+      events.push({ type: 'carried', from: { x, y }, to: { x: nx, y } });
+      x = nx;
+    }
     const under = tileAt(s, x, y)!;
     const bottom = faceAt(s.level.loadout, orient, B);
     if (bottom === 'Trap' && under === 'grass') {
@@ -369,7 +413,7 @@ function chase(s: State, e: Enemy): Pos | null {
     for (const d of movesFrom(cx, cy)) {
       const nb = neighbor(cx, cy, d)!;
       const t = tileAt(s, nb.x, nb.y);
-      if (!t || !walkable(t) || dist[nb.y * w + nb.x]! >= 0) continue;
+      if (!t || !wolfWalkable(t) || dist[nb.y * w + nb.x]! >= 0) continue;
       dist[nb.y * w + nb.x] = dist[queue[q]!]! + 1;
       queue.push(nb.y * w + nb.x);
     }
@@ -380,7 +424,8 @@ function chase(s: State, e: Enemy): Pos | null {
     const nb = neighbor(e.x, e.y, d);
     if (!nb) continue;
     const t = tileAt(s, nb.x, nb.y);
-    if (!t || !walkable(t) || enemyAt(s, nb.x, nb.y) || (nb.x === s.x && nb.y === s.y)) continue;
+    if (!t || !wolfWalkable(t) || enemyAt(s, nb.x, nb.y) || (nb.x === s.x && nb.y === s.y))
+      continue;
     const nd = dist[nb.y * w + nb.x]!;
     if (nd >= 0 && nd < bestD) {
       bestD = nd;

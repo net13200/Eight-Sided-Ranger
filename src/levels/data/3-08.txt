@@ -1,0 +1,12 @@
+id: 3-08
+name: Pad and Post
+par: 11
+hint: Step, swing, and don't look back
+loadout: Leaf Rope Leaf Bow Leaf Knife Leaf Leaf
+teaches: pad,rope
+---
+@.P......
+...o.~~~~
+..o.#~~~~
+P..~..#~~
+..>.w..~.

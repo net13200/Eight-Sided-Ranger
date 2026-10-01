@@ -143,6 +143,26 @@ describe('rules', () => {
     expect(shot.enemies[0]).toMatchObject({ hp: 1, asleep: false });
   });
 
+  it('a current carries the die along the row, faces unchanged, until it is off the current', () => {
+    const s = play(LV('@}}}..>'), 'E');
+    expect(s).toMatchObject({ x: 4 });
+    expect(s.orient).toBe(roll(0, 'E'));
+  });
+
+  it('a current stops at a tree; two currents facing each other just hold the die', () => {
+    expect(play(LV('@}}#..'), 'E').x).toBe(2);
+    expect(play(LV('@}{...'), 'E').x).toBeLessThanOrEqual(2);
+  });
+
+  it('a lily pad holds once, then sinks; wolves keep off pads and currents', () => {
+    let s = play(LV('@o.....'), 'E');
+    expect(s.tiles[1]).toBe('pad');
+    s = play(s, 'E');
+    expect(s.tiles[1]).toBe('water');
+    const w = play(LV('@..o.w'), 'E');
+    expect(w.enemies[0]!.x).toBe(5); // the pad is in its way: it waits
+  });
+
   it('the Bow shoots along the row, over water; a wolf takes two arrows', () => {
     let s = LV('@.~~.w.#', facing('Bow'));
     s = play(s, 'E');

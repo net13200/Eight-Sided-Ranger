@@ -1,0 +1,11 @@
+id: 3-06
+name: Lily Pads
+par: 8
+hint: A pad holds you once
+loadout: Leaf Leaf Leaf Leaf Leaf Leaf Leaf Leaf
+teaches: pad
+---
+........~
+......o@~
+....~~~o~
+...>~~~~~

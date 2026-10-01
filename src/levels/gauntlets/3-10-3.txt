@@ -1,0 +1,13 @@
+id: 3-10-3
+name: The Braided River: the far bank
+par: 8
+hint: From 1 HP: leap it
+hp: 1
+loadout: Boots Leaf Rope Knife Leaf Bow Leaf Leaf
+teaches: boots
+---
+......~~.
+.....~~~~
+.....~~~~
+.......}.
+....@.~.>

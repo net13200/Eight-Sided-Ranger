@@ -118,6 +118,7 @@ export const FOREST = {
   tree: '#18331f',
   pine: '#3f7d45',
   water: '#2c6d8f',
+  current: '#2f7fa6',
   waterHi: '#6fb7d8',
   exit: '#e2b650',
   post: '#8a5a2b',
@@ -179,7 +180,8 @@ function drawTile(
   const m = center(x, y);
   tri(ctx, c);
   ctx.fillStyle = (x + y) % 4 < 2 ? look.grassA : look.grassB;
-  if (tile === 'water') ctx.fillStyle = FOREST.water;
+  if (tile === 'water' || tile === 'currentE' || tile === 'currentW' || tile === 'pad')
+    ctx.fillStyle = tile === 'water' || tile === 'pad' ? FOREST.water : FOREST.current;
   if (tile === 'tree') ctx.fillStyle = look.tree;
   ctx.fill();
   ctx.strokeStyle = look.line;
@@ -189,6 +191,44 @@ function drawTile(
     case 'tree':
       pine(ctx, m.x, m.y + 4, 13, look.pine);
       break;
+    case 'currentE':
+    case 'currentW': {
+      // Chevrons drifting downstream.
+      const dir = tile === 'currentE' ? 1 : -1;
+      ctx.strokeStyle = 'rgba(220,245,255,0.85)';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      for (let i = 0; i < 2; i++) {
+        const k = ((t * 0.8 + i * 0.5) % 1) - 0.5;
+        const cx = m.x + dir * k * 16;
+        ctx.globalAlpha = 1 - Math.abs(k) * 1.6;
+        ctx.beginPath();
+        ctx.moveTo(cx - dir * 4, m.y - 5);
+        ctx.lineTo(cx + dir * 2, m.y);
+        ctx.lineTo(cx - dir * 4, m.y + 5);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      break;
+    }
+    case 'pad': {
+      // A lily pad with its notch, and a small flower.
+      ctx.fillStyle = '#5fa04a';
+      ctx.beginPath();
+      ctx.moveTo(m.x, m.y);
+      ctx.arc(m.x, m.y, 11, 0.35, Math.PI * 2 - 0.05);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#3c6e30';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      ctx.fillStyle = '#f6d6e6';
+      ctx.beginPath();
+      ctx.arc(m.x - 3, m.y - 3, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
     case 'water': {
       ctx.strokeStyle = FOREST.waterHi;
       ctx.globalAlpha = 0.6;

@@ -1,0 +1,13 @@
+id: 3-09
+name: The Braids
+par: 11
+hint: Every way across
+loadout: Leaf Rope Boots Bow Knife Leaf Leaf Leaf
+teaches: boots,rope,current
+---
+..~~~~~..
+...~~~~~.
+..w.{~@P.
+......}~~
+.w...w..>
+.........
