@@ -68,6 +68,8 @@ if (devTools)
     scene: () => game.scene?.name,
     /** A board cell's centre, in logical stage units (for tests that tap the board). */
     cellCenter: (x: number, y: number) => center(x, y),
+    audioRunning: () => game.audio.running,
+    music: () => game.audio.currentTrack,
     state: () =>
       game.scene && 'state' in game.scene ? (game.scene as { state: unknown }).state : null,
   };

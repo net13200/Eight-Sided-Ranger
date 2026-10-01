@@ -62,6 +62,8 @@ export class Game {
     this.stage.ui.replaceChildren();
     this.scene = next;
     this.stage.root.dataset.scene = next.name;
+    // The stones tune while playing a level; the glade tune everywhere else.
+    this.audio.setTrack(next.name === 'play' ? 'stones' : 'glade');
     this.platform.ads.gameplayStop();
     next.enter(this.stage.ui);
   }
