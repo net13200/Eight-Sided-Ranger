@@ -50,7 +50,10 @@ platform.onVisibilityChange((visible) => {
 await loadLang(game.save.data.settings.lang);
 
 const levelParam = devTools ? Number(params.get('level')) : 0;
-game.goPlay(levelParam >= 1 ? levelParam - 1 : 0);
+if (levelParam >= 1) game.goPlay(levelParam - 1);
+// A first-time player goes straight into level 1; everyone else to the map.
+else if (Object.keys(game.save.data.levels).length === 0) game.goPlay(0);
+else game.goMap();
 loop.start();
 platform.ads.loaded();
 

@@ -13,6 +13,8 @@ export interface LevelRecord {
   stars: number;
   bestMoves: number;
   completions: number;
+  /** The level's fingerprint when it was beaten (see progress.ts). */
+  fp: string;
 }
 
 export interface SaveData {
@@ -61,14 +63,18 @@ export class Save {
     this.storage.set(SAVE_KEY, JSON.stringify(this.data));
   }
 
-  /** Records a win, keeping the best result. Returns the stars earned this time. */
-  recordWin(id: string, moves: number, stars: number): void {
+  /**
+   * Records a win, keeping the best result. A win on a changed level (a new
+   * fingerprint) starts its record over: the old stars were for another puzzle.
+   */
+  recordWin(id: string, fp: string, moves: number, stars: number): void {
     this.update((d) => {
-      const prev = d.levels[id];
+      const prev = d.levels[id]?.fp === fp ? d.levels[id] : undefined;
       d.levels[id] = {
         stars: Math.max(prev?.stars ?? 0, stars),
         bestMoves: prev ? Math.min(prev.bestMoves, moves) : moves,
-        completions: (prev?.completions ?? 0) + 1,
+        completions: (d.levels[id]?.completions ?? 0) + 1,
+        fp,
       };
     });
   }

@@ -13,6 +13,7 @@ import {
   type GameEvent,
   type State,
 } from '../../engine';
+import { fingerprint } from '../../meta/progress';
 import { FACE_INFO, LESSONS } from '../lessons';
 import {
   placeBoard,
@@ -32,7 +33,6 @@ import { el, iconButton, place } from '../ui';
 import { muteButton } from './common';
 import { C, drawHeart } from '../view/palette';
 import { LessonCard } from './lesson-card';
-import { openLevelList } from './level-list';
 import type { Scene } from './scene';
 import { t, tk } from '../../i18n';
 
@@ -141,18 +141,13 @@ export class PlayScene implements Scene {
       else if (cmd.type === 'tap' && this.lesson.typing) this.lesson.advance();
       return;
     }
-    if (this.levels) {
-      if (cmd.type === 'back')
-        this.levels.querySelector<HTMLButtonElement>('[data-testid="level-list-close"]')?.click();
-      return;
-    }
     if (this.info) {
       if (cmd.type !== 'move') this.closeInfo();
       return;
     }
     if (this.finished) {
       if (cmd.type === 'confirm') this.next();
-      else if (cmd.type === 'back') this.openLevels();
+      else if (cmd.type === 'back') this.game.goMap(this.index);
       return;
     }
     switch (cmd.type) {
@@ -191,7 +186,7 @@ export class PlayScene implements Scene {
         this.openInfo();
         break;
       case 'back':
-        this.openLevels();
+        this.game.goMap(this.index);
         break;
     }
   }
@@ -255,7 +250,7 @@ export class PlayScene implements Scene {
     this.finished = true;
     const moves = this.state.moves;
     const stars = starsFor(moves, this.level.par);
-    this.game.save.recordWin(this.level.id, moves, stars);
+    this.game.save.recordWin(this.level.id, fingerprint(this.level), moves, stars);
     this.game.audio.play('win');
     setTimeout(() => this.showPanel(true, stars), this.game.reducedMotion ? 0 : 450);
   }
@@ -265,7 +260,8 @@ export class PlayScene implements Scene {
   }
 
   private next(): void {
-    this.game.goPlay(this.isLast ? 0 : this.index + 1);
+    if (this.isLast) this.game.goMap(this.index);
+    else this.game.goPlay(this.index + 1);
   }
 
   private showPanel(won: boolean, stars = 0): void {
@@ -301,7 +297,7 @@ export class PlayScene implements Scene {
               className: 'btn small',
               testId: 'to-map',
               text: t('Map'),
-              onClick: () => this.openLevels(),
+              onClick: () => this.game.goMap(this.index),
             }),
           ]),
         ]
@@ -328,14 +324,6 @@ export class PlayScene implements Scene {
   private hidePanel(): void {
     this.panel?.remove();
     this.panel = null;
-  }
-
-  private levels: HTMLElement | null = null;
-
-  private openLevels(): void {
-    if (!this.ui || this.levels) return;
-    this.game.setPlaying(false);
-    this.levels = openLevelList(this.game, this.ui, () => (this.levels = null));
   }
 
   /** The die's eight faces: where each one is now, and what it does. */

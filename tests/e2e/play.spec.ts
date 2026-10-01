@@ -37,11 +37,29 @@ test('a tap on a neighbouring triangle rolls there; undo takes it back', async (
   await expect.poll(moves).toBe(0);
 });
 
-test('every button is at least 44 px', async ({ page }) => {
-  await page.goto('/?level=3');
-  for (const b of await page.locator('button:visible').all()) {
-    const r = (await b.boundingBox())!;
-    expect(Math.min(r.width, r.height)).toBeGreaterThanOrEqual(44);
+test('every button is at least 44 px, on a level and on the map', async ({ page }) => {
+  for (const url of ['/?level=3', '/']) {
+    if (url === '/')
+      await page.evaluate(() =>
+        localStorage.setItem(
+          'esr-save',
+          JSON.stringify({
+            version: 1,
+            levels: { '1-01': { stars: 3, bestMoves: 7, completions: 1, fp: 'x' } },
+            seen: { 'road:1': true },
+            settings: {},
+          }),
+        ),
+      );
+    await page.goto(url);
+    await page.waitForTimeout(300);
+    for (const b of await page.locator('button:visible').all()) {
+      const r = (await b.boundingBox())!;
+      expect([await b.getAttribute('data-testid'), Math.min(r.width, r.height) >= 44]).toEqual([
+        await b.getAttribute('data-testid'),
+        true,
+      ]);
+    }
   }
 });
 

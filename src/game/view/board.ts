@@ -579,7 +579,15 @@ for (const sx of [-1, 1])
   for (const sy of [-1, 1]) for (const sz of [-1, 1]) OCTA_FACES.push([sx, sy, sz]);
 const OCTA_ICONS = ['Bow', 'Knife', 'Trap', 'Rope', 'Cloak', 'Boots', 'Herb', 'Leaf'];
 
-export function drawOctahedron(ctx: Ctx, cx: number, cy: number, size: number, t: number): void {
+export function drawOctahedron(
+  ctx: Ctx,
+  cx: number,
+  cy: number,
+  size: number,
+  t: number,
+  /** Small dice (the map): thinner edges and no icons. */
+  small = false,
+): void {
   const ya = t * 0.6;
   const xa = -0.62 + Math.sin(t * 0.4) * 0.15;
   const rot = (v: readonly number[]) => {
@@ -613,8 +621,9 @@ export function drawOctahedron(ctx: Ctx, cx: number, cy: number, size: number, t
     ctx.fillStyle = `rgb(${Math.round(210 * light)},${Math.round(165 * light)},${Math.round(100 * light)})`;
     ctx.fill();
     ctx.strokeStyle = '#2a1a0c';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = small ? 1.4 : 2;
     ctx.stroke();
+    if (small) continue;
     const mx = cx + ((f.vs[0]![0] + f.vs[1]![0] + f.vs[2]![0]) / 3) * size;
     const my = cy - ((f.vs[0]![1] + f.vs[1]![1] + f.vs[2]![1]) / 3) * size;
     ctx.globalAlpha = Math.min(1, f.n[2] * 2.2);

@@ -8,6 +8,7 @@ import { Save } from '../meta/save';
 import type { Platform } from '../platform/platform';
 import { Audio } from './audio';
 import type { Command } from './input';
+import { MapScene } from './scenes/map';
 import { PlayScene } from './scenes/play';
 import type { Scene } from './scenes/scene';
 import { drawBackdrop } from './view/backdrop';
@@ -60,6 +61,11 @@ export class Game {
 
   goPlay(index: number): void {
     this.go(new PlayScene(this, Math.max(0, Math.min(index, this.levels.length - 1))));
+  }
+
+  /** The map, with the die on level `at` (default: where to pick up). */
+  goMap(at?: number): void {
+    this.go(new MapScene(this, at));
   }
 
   command(cmd: Command): void {

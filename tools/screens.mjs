@@ -4,6 +4,7 @@
  *
  *   npx vite build && npx vite preview --port 4173 &
  *   node tools/screens.mjs [url-suffix] [out-dir]
+ *   SAVE="$(npx tsx tools/seed-save.ts 4)" KEYS=Enter,ArrowUp node tools/screens.mjs
  */
 import { mkdirSync } from 'node:fs';
 import { chromium } from '@playwright/test';
@@ -27,12 +28,17 @@ for (const s of SIZES) {
     isMobile: s.mobile,
     hasTouch: s.mobile,
   });
+  if (process.env.SAVE)
+    await page.addInitScript((save) => localStorage.setItem('esr-save', save), process.env.SAVE);
   await page.goto(`http://localhost:4173/${suffix}`);
   await page.waitForFunction(() => window.__esr);
   await page.waitForTimeout(300);
   for (const k of actions.split(',').filter(Boolean)) {
     if (k.startsWith('click:')) await page.getByTestId(k.slice(6)).click();
-    else await page.keyboard.press(k);
+    else if (k.startsWith('wheel:')) {
+      await page.mouse.move(s.width / 2, s.height / 2);
+      await page.mouse.wheel(0, Number(k.slice(6)));
+    } else await page.keyboard.press(k);
     await page.waitForTimeout(250);
   }
   await page.waitForTimeout(400);
