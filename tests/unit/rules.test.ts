@@ -232,6 +232,41 @@ describe('rules', () => {
     expect(step(s, 'W').consumed).toBe(false); // can't roll back into the tree
   });
 
+  it('the Old Bear rests, rears up, then swipes or lumbers: every other turn', () => {
+    const blank = 'Leaf Leaf Leaf Leaf Leaf Leaf Leaf Leaf';
+    let s = LV('@.....B', blank);
+    s = play(s, 'E'); // it rears up: the tell
+    expect(s.enemies[0]).toMatchObject({ x: 6, ready: true });
+    s = play(s, 'E'); // now it lumbers one step
+    expect(s.enemies[0]).toMatchObject({ x: 5, ready: false });
+    s = play(s, 'E');
+    expect(s.enemies[0]!.x).toBe(5); // resting
+    s = play(s, 'E'); // adjacent and ready: a swipe
+    expect(s.hp).toBe(2);
+    expect(s.enemies[0]!.x).toBe(5);
+  });
+
+  it('nothing hurts the Old Bear; a snare still holds it', () => {
+    const r = step(LV('@B....', facing('Knife')), 'E');
+    expect(r.events.map((e) => e.type)).toContain('shrugged');
+    expect(r.state.enemies[0]!.hp).toBe(4);
+    const shot = step(LV('@...B.', facing('Bow')), 'E');
+    expect(shot.state.enemies[0]!.hp).toBe(4);
+    let s = play(LV('..@x.B', 'Leaf Leaf Leaf Leaf Leaf Leaf Leaf Leaf'), 'W'); // rears
+    s = play(s, 'E'); // lumbers one step
+    expect(s.enemies[0]).toMatchObject({ x: 4, snared: 0 });
+    s = play(s, 'WE'); // rests, then lumbers on, into the snare
+    expect(s.enemies[0]).toMatchObject({ x: 3, snared: 3 });
+  });
+
+  it('the Great Oak is reached with the Leaf face-down, not otherwise', () => {
+    const leafDown = 'Bow Knife Trap Leaf Cloak Boots Herb Bow';
+    expect(play(LV('@O', leafDown), 'E').status).toBe('won');
+    const s = play(LV('@O', facing('Knife')), 'E');
+    expect(s.status).toBe('playing');
+    expect(s.x).toBe(1);
+  });
+
   it('the Bow shoots along the row, over water; a wolf takes two arrows', () => {
     let s = LV('@.~~.w.#', facing('Bow'));
     s = play(s, 'E');

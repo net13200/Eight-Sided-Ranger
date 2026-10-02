@@ -1,0 +1,12 @@
+id: 6-10
+name: The Heartwood
+par: 11
+hint: Three floors; HP carries over
+loadout: Leaf Acorn Boots Knife Bow Cloak Horn Trap
+teaches: bear,acorn
+---
+..###
+...>#
+B...#
+%..##
+..@~#

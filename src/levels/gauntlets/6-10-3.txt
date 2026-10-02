@@ -1,0 +1,14 @@
+id: 6-10-3
+name: The Great Oak
+par: 10
+hint: Let the leaf fall
+hp: 1
+loadout: Leaf Acorn Boots Knife Bow Cloak Horn Trap
+teaches: bear
+---
+###....##
+#@.......
+#...BO...
+......B..
+#...####.
+#.....###

@@ -1,0 +1,11 @@
+id: 6-06
+name: Old Watchers
+par: 12
+hint: Weapons only make it look at you
+loadout: Leaf Leaf Knife Bow Leaf Cloak Leaf Leaf
+teaches: bear,owl
+---
+...z.>
+......
+@B....
+....h.

@@ -1,0 +1,12 @@
+id: 6-05
+name: Bramble Den
+par: 10
+hint: Thorns stop the bear too
+loadout: Leaf Boots Knife Leaf Leaf Leaf Leaf Leaf
+teaches: bear,bramble
+---
+..>..
+.....
+.B#..
+.@#.%
+.....

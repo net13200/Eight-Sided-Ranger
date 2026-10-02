@@ -61,6 +61,7 @@ export const TEACH_SPECS = {
   stag: { kind: 'creature', is: (e: Enemy) => e.kind === 'stag' },
   sleeper: { kind: 'creature', is: (e: Enemy) => !!e.asleep },
   boar: { kind: 'creature', is: (e: Enemy) => e.kind === 'boar' },
+  bear: { kind: 'creature', is: (e: Enemy) => e.kind === 'bear' },
   // An owl matters for what it sees, not where it sits (or as a target).
   owl: {
     kind: 'creature',

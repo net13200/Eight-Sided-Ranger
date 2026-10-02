@@ -65,7 +65,7 @@ export class CampaignMode implements PlayMode {
     this.main = game.levels[index]!;
     this.par = runPar(this.main);
     this.movesBefore = run.movesBefore;
-    this.lessons = run.floor === 0;
+    this.lessons = true; // floors can have their own lesson (the Great Oak)
   }
 
   private get floors(): number {

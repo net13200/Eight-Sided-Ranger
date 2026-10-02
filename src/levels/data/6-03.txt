@@ -1,0 +1,11 @@
+id: 6-03
+name: Fern Hollow
+par: 10
+hint: Hide while it passes
+loadout: Leaf Leaf Knife Leaf Leaf Leaf Leaf Leaf
+teaches: bear,fern
+---
+.....
+.....
+B.f..
+.>#@.

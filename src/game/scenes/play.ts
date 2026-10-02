@@ -255,7 +255,13 @@ export class PlayScene implements Scene {
           t: 0,
         });
         sound = 'horn';
-      } else if (e.type === 'bitten' || e.type === 'charged' || e.type === 'gored') {
+      } else if (e.type === 'shrugged') sound = 'bump';
+      else if (
+        e.type === 'bitten' ||
+        e.type === 'charged' ||
+        e.type === 'gored' ||
+        e.type === 'swiped'
+      ) {
         const c = center(e.from.x, e.from.y);
         this.flashes.push({
           kind: e.type === 'bitten' ? 'bite' : 'charge',

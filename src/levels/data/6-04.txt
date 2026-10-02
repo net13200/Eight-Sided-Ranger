@@ -1,0 +1,13 @@
+id: 6-04
+name: Oakling
+par: 11
+hint: A tree of your own
+loadout: Leaf Acorn Knife Leaf Leaf Leaf Leaf Leaf
+teaches: bear,acorn
+---
+..###~w
+~####@.
+......#
+w#~...#
+....>.#
+.#...B~

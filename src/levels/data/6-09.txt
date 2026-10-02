@@ -1,0 +1,10 @@
+id: 6-09
+name: Heartwood Edge
+par: 9
+hint: Everything you know
+loadout: Leaf Acorn Boots Knife Bow Cloak Horn Trap
+teaches: bear,acorn
+---
+f>B%...%@
+#....###~
+####.~#..

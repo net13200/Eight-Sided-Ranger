@@ -1,0 +1,11 @@
+id: 6-02
+name: Hold Fast
+par: 9
+hint: A snare holds even a bear
+loadout: Leaf Horn Knife Leaf Leaf Leaf Leaf Leaf
+teaches: bear,horn
+---
+##@..
+#..x.
+B..B.
+.>...

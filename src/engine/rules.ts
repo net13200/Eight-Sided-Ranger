@@ -28,6 +28,8 @@ export type Tile =
   | 'pad'
   | 'fern'
   | 'bramble'
+  /** The Great Oak: the end of the road, reached with the Leaf face-down. */
+  | 'oak'
   /** An acorn planted under the die; a tree once the die leaves. */
   | 'sapling';
 
@@ -44,6 +46,7 @@ export const TILE_GLYPH: Readonly<Record<string, Tile>> = {
   o: 'pad',
   f: 'fern',
   '%': 'bramble',
+  O: 'oak',
 };
 
 /** Tiles the die can stand on. */
@@ -54,6 +57,7 @@ export function walkable(t: Tile): boolean {
     t === 'currentW' ||
     t === 'pad' ||
     t === 'bramble' ||
+    t === 'oak' ||
     t === 'sapling'
   );
 }
@@ -75,7 +79,7 @@ export function seeThrough(t: Tile): boolean {
 
 // ---------- state ----------
 
-export type EnemyKind = 'wolf' | 'stag' | 'boar' | 'owl';
+export type EnemyKind = 'wolf' | 'stag' | 'boar' | 'owl' | 'bear';
 
 export interface Enemy {
   readonly id: number;
@@ -89,6 +93,8 @@ export interface Enemy {
   readonly asleep?: boolean;
   /** An owl that never hoots (only for the teaches-check: "what if it didn't see?"). */
   readonly blind?: boolean;
+  /** The Old Bear, rearing up: it acts after the Ranger's next roll (it rests in between). */
+  readonly ready?: boolean;
   /** Blown back by the Horn this turn: it loses its action. */
   readonly startled?: boolean;
 }
@@ -127,7 +133,13 @@ export interface State {
 }
 
 export const MAX_HP = 3;
-export const ENEMY_HP: Readonly<Record<EnemyKind, number>> = { wolf: 2, stag: 3, boar: 2, owl: 1 };
+export const ENEMY_HP: Readonly<Record<EnemyKind, number>> = {
+  wolf: 2,
+  stag: 3,
+  boar: 2,
+  owl: 1,
+  bear: 4,
+};
 export const SNARE_TURNS = 3;
 
 export function startState(level: Level): State {
@@ -179,6 +191,8 @@ export type GameEvent =
   | { type: 'pricked'; at: Pos }
   | { type: 'planted'; at: Pos }
   | { type: 'grew'; at: Pos }
+  | { type: 'shrugged'; id: number; at: Pos }
+  | { type: 'swiped'; id: number; from: Pos }
   | { type: 'won' }
   | { type: 'lost' };
 
@@ -211,6 +225,11 @@ function hurt(
 ): void {
   const i = enemies.findIndex((e) => e.id === id);
   const e = enemies[i]!;
+  if (kind === 'bear') {
+    // Nothing hurts the Old Bear. It just looks at you.
+    events.push({ type: 'shrugged', id, at });
+    return;
+  }
   if (e.hp - dmg <= 0) {
     enemies.splice(i, 1);
     events.push({ type: 'killed', id, kind, at });
@@ -409,7 +428,8 @@ export function step(s: State, dir: Dir): StepResult {
   }
 
   let next: State = { ...s, tiles, x, y, orient, hp, enemies, moves: s.moves + 1 };
-  if (tileAt(next, x, y) === 'exit') {
+  const end = tileAt(next, x, y);
+  if (end === 'exit' || (end === 'oak' && moved && faceAt(s.level.loadout, orient, B) === 'Leaf')) {
     events.push({ type: 'won' });
     return { state: { ...next, status: 'won' }, events, consumed: true };
   }
@@ -444,6 +464,11 @@ function enemyPhase(s: State, events: GameEvent[]): State {
     if (e.snared > 0) {
       enemies[k] = { ...e, snared: e.snared - 1 };
       continue;
+    }
+    if (e.kind === 'bear') {
+      // The Old Bear acts every other turn: it rears up (the tell), then swipes or lumbers.
+      enemies[k] = { ...e, ready: !e.ready };
+      if (!e.ready) continue;
     }
     if (unseen) continue;
     if (e.asleep) {
@@ -491,13 +516,17 @@ function enemyPhase(s: State, events: GameEvent[]): State {
       }
     } else if (adjacent(e.x, e.y, s.x, s.y)) {
       hp -= 1;
-      events.push({ type: 'bitten', id: e.id, from: { x: e.x, y: e.y } });
+      events.push(
+        e.kind === 'bear'
+          ? { type: 'swiped', id: e.id, from: { x: e.x, y: e.y } }
+          : { type: 'bitten', id: e.id, from: { x: e.x, y: e.y } },
+      );
     } else {
       const to = chase(cur, e);
       if (to) {
         events.push({ type: 'enemyMoved', id: e.id, from: { x: e.x, y: e.y }, to });
         const onSnare = tileAt(cur, to.x, to.y) === 'snare';
-        enemies[k] = { ...e, x: to.x, y: to.y, snared: onSnare ? SNARE_TURNS : 0 };
+        enemies[k] = { ...enemies[k]!, x: to.x, y: to.y, snared: onSnare ? SNARE_TURNS : 0 };
         if (onSnare) {
           tiles = tiles.map((tt, i) => (i === to.y * s.level.width + to.x ? 'grass' : tt));
           events.push({ type: 'snared', id: e.id, at: to });

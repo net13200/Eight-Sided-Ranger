@@ -1,0 +1,10 @@
+id: 6-07
+name: Slow Water
+par: 10
+hint: The current is quicker than the bear
+loadout: Leaf Boots Rope Leaf Leaf Leaf Leaf Leaf
+teaches: bear,current
+---
+##..>..
+.{.##.B
+....@.{

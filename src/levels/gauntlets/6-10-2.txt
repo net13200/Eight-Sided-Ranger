@@ -1,0 +1,13 @@
+id: 6-10-2
+name: The Heartwood: the hollow
+par: 9
+hint: From 1 HP: one step each
+hp: 1
+loadout: Leaf Acorn Boots Knife Bow Cloak Horn Trap
+teaches: bear
+---
+........
+.......@
+........
+..h##...
+B..>....

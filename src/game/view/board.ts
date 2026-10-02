@@ -166,10 +166,13 @@ export function drawForest(ctx: Ctx, s: State, t: number): void {
   ctx.fillRect(0, 0, 340, 480);
   for (let y = 0; y < height; y++)
     for (let x = 0; x < width; x++) drawTile(ctx, tileAt(s, x, y)!, x, y, t, look);
-  // Stags' and boars' rows are dangerous (unless you're hidden).
+  // The Great Oak spreads over its neighbours, so it goes on top.
+  for (let y = 0; y < height; y++)
+    for (let x = 0; x < width; x++) if (tileAt(s, x, y) === 'oak') drawOak(ctx, center(x, y), t);
+  // Stags' and boars' rows are dangerous, owls' rows are watched (unless you're hidden).
   if (!hidden(s))
     for (const e of s.enemies)
-      if (e.kind !== 'wolf' && e.snared === 0 && !e.blind) drawLane(ctx, s, e);
+      if (e.kind !== 'wolf' && e.kind !== 'bear' && e.snared === 0 && !e.blind) drawLane(ctx, s, e);
 }
 
 function drawTile(
@@ -305,6 +308,12 @@ function drawTile(
       ctx.globalAlpha = 1;
       break;
     }
+    case 'oak':
+      // The ground under the Great Oak glows; the tree itself is drawn on top.
+      tri(ctx, c, 0.1);
+      ctx.fillStyle = 'rgba(255,214,120,0.35)';
+      ctx.fill();
+      break;
     case 'exit': {
       // A glowing gap in the trees.
       const g = ctx.createRadialGradient(m.x, m.y, 2, m.x, m.y, 20);
@@ -392,6 +401,51 @@ function drawTile(
       ctx.lineTo(m.x - 1, m.y - 2);
       ctx.stroke();
   }
+}
+
+/** The Great Oak: a wide crown of autumn leaves that won't fall. */
+function drawOak(ctx: Ctx, m: Pt, t: number): void {
+  ctx.save();
+  const glow = ctx.createRadialGradient(m.x, m.y - 14, 4, m.x, m.y - 14, 46);
+  glow.addColorStop(0, 'rgba(255,214,120,0.45)');
+  glow.addColorStop(1, 'rgba(255,214,120,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(m.x - 50, m.y - 64, 100, 100);
+  // Trunk and roots.
+  ctx.fillStyle = '#5a3a1e';
+  ctx.beginPath();
+  ctx.moveTo(m.x - 4, m.y - 14);
+  ctx.lineTo(m.x + 4, m.y - 14);
+  ctx.quadraticCurveTo(m.x + 4, m.y + 2, m.x + 10, m.y + 8);
+  ctx.lineTo(m.x - 10, m.y + 8);
+  ctx.quadraticCurveTo(m.x - 4, m.y + 2, m.x - 4, m.y - 14);
+  ctx.fill();
+  // The crown: overlapping clumps in red, orange and gold.
+  const clumps: [number, number, number, string][] = [
+    [-16, -22, 12, '#a8401f'],
+    [16, -22, 12, '#b85a1f'],
+    [0, -32, 15, '#c8702a'],
+    [-9, -18, 11, '#d98a2e'],
+    [10, -17, 11, '#e0a03a'],
+    [0, -24, 10, '#eab84a'],
+  ];
+  for (const [dx, dy, r, col] of clumps) {
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.arc(m.x + dx, m.y + dy, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // One leaf trembling, about to go.
+  const sway = Math.sin(t * 2) * 0.3;
+  ctx.translate(m.x + 18, m.y - 8);
+  ctx.rotate(0.6 + sway);
+  ctx.fillStyle = '#f0c050';
+  ctx.beginPath();
+  ctx.moveTo(-4, 0);
+  ctx.quadraticCurveTo(0, -3, 4, 0);
+  ctx.quadraticCurveTo(0, 3, -4, 0);
+  ctx.fill();
+  ctx.restore();
 }
 
 function pine(ctx: Ctx, x: number, y: number, h: number, color: string): void {
@@ -484,6 +538,55 @@ export function drawEnemy(ctx: Ctx, e: Enemy, p: Pt, t: number): void {
     }
     ctx.fillStyle = '#2b2d33';
     ctx.fillRect(-1.5, 3 + bob, 3, 2);
+  } else if (e.kind === 'bear') {
+    // The Old Bear: big, grey-muzzled, tired. Reared up (ready) it is taller,
+    // paws out and eyes open: it moves after your next roll.
+    const up = e.ready ? 1 : 0;
+    ctx.scale(1.25, 1.25);
+    ctx.translate(0, -up * 3);
+    ctx.fillStyle = '#6a4a32';
+    ctx.strokeStyle = '#24160c';
+    ctx.lineWidth = 1.2;
+    for (const sx of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc(sx * 7, -9, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.ellipse(0, -1, 10, 9.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#b8a48a';
+    ctx.beginPath();
+    ctx.ellipse(0, 3, 5, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#24160c';
+    ctx.beginPath();
+    ctx.ellipse(0, 1.2, 2, 1.4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    if (up) {
+      ctx.fillStyle = '#ffcf6a';
+      ctx.fillRect(-5, -4, 2.5, 2.5);
+      ctx.fillRect(2.5, -4, 2.5, 2.5);
+      // Paws out.
+      ctx.fillStyle = '#6a4a32';
+      for (const sx of [-1, 1]) {
+        ctx.beginPath();
+        ctx.ellipse(sx * 12, 2, 3.5, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+    } else {
+      // Heavy-lidded: resting.
+      ctx.strokeStyle = '#24160c';
+      ctx.beginPath();
+      ctx.moveTo(-5.5, -3);
+      ctx.lineTo(-2.5, -3);
+      ctx.moveTo(2.5, -3);
+      ctx.lineTo(5.5, -3);
+      ctx.stroke();
+    }
   } else if (e.kind === 'owl') {
     // The owl: round, tufted, with big moon eyes.
     ctx.fillStyle = '#8a7a66';
@@ -587,8 +690,8 @@ export function drawEnemy(ctx: Ctx, e: Enemy, p: Pt, t: number): void {
     ctx.fillRect(-4, -2, 2, 2);
     ctx.fillRect(2, -2, 2, 2);
   }
-  // HP pips.
-  for (let i = 0; i < e.hp; i++) {
+  // HP pips (not for the Old Bear: nothing hurts it).
+  for (let i = 0; i < (e.kind === 'bear' ? 0 : e.hp); i++) {
     ctx.fillStyle = '#ff6b6b';
     ctx.beginPath();
     ctx.arc(-((e.hp - 1) * 3) + i * 6, 12, 2, 0, Math.PI * 2);
