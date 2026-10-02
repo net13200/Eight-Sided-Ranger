@@ -150,14 +150,18 @@ Object.assign(LESSONS, {
   },
 } satisfies Record<string, Lesson>);
 
-/** Lessons for the Heartwood. */
+/** The Old Bear first turns up at the end of the Edgewood (and at every district's end). */
 Object.assign(LESSONS, {
-  '6-01': {
+  '1-10': {
     title: tk('The Old Bear'),
     text: tk(
-      'Nothing you carry can hurt the Old Bear, and you wouldn’t want to. It moves every other turn: when it rears up, it will swipe or lumber after your next roll. Then it rests.',
+      'He can’t get to his winter sleep, and he blames you. He moves every other turn: when he rears up, he’ll swipe or lumber after your next roll. You’d never hurt him: you won’t aim at him, and he’s too big for a snare.',
     ),
   },
+} satisfies Record<string, Lesson>);
+
+/** Lessons for the Heartwood. */
+Object.assign(LESSONS, {
   '6-10-3': {
     title: tk('The Great Oak'),
     text: tk('Roll onto the Great Oak with the Leaf face-down. Let it fall.'),

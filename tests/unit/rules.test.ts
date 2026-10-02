@@ -246,17 +246,19 @@ describe('rules', () => {
     expect(s.enemies[0]!.x).toBe(5);
   });
 
-  it('nothing hurts the Old Bear; a snare still holds it', () => {
-    const r = step(LV('@B....', facing('Knife')), 'E');
-    expect(r.events.map((e) => e.type)).toContain('shrugged');
-    expect(r.state.enemies[0]!.hp).toBe(4);
-    const shot = step(LV('@...B.', facing('Bow')), 'E');
-    expect(shot.state.enemies[0]!.hp).toBe(4);
+  it('the Ranger never aims at the Old Bear, and he is too big for a snare', () => {
+    // The Knife into him is just a bump: no stab, no turn.
+    expect(step(LV('@B....', facing('Knife')), 'E').consumed).toBe(false);
+    // The Bow along the row holds its arrow: the die just rolls.
+    const bow = step(LV('@...B.', facing('Bow')), 'E');
+    expect(bow.events.map((e) => e.type)).not.toContain('shot');
+    expect(bow.state.x).toBe(1);
+    expect(bow.state.enemies[0]!.hp).toBe(4);
     let s = play(LV('..@x.B', 'Leaf Leaf Leaf Leaf Leaf Leaf Leaf Leaf'), 'W'); // rears
     s = play(s, 'E'); // lumbers one step
-    expect(s.enemies[0]).toMatchObject({ x: 4, snared: 0 });
-    s = play(s, 'WE'); // rests, then lumbers on, into the snare
-    expect(s.enemies[0]).toMatchObject({ x: 3, snared: 3 });
+    s = play(s, 'WE'); // rests, then lumbers on, through the snare
+    expect(s.enemies[0]).toMatchObject({ x: 3, snared: 0 });
+    expect(s.tiles[3]).toBe('snare'); // still set
   });
 
   it('the Great Oak is reached with the Leaf face-down, not otherwise', () => {

@@ -191,7 +191,6 @@ export type GameEvent =
   | { type: 'pricked'; at: Pos }
   | { type: 'planted'; at: Pos }
   | { type: 'grew'; at: Pos }
-  | { type: 'shrugged'; id: number; at: Pos }
   | { type: 'swiped'; id: number; from: Pos }
   | { type: 'won' }
   | { type: 'lost' };
@@ -225,11 +224,6 @@ function hurt(
 ): void {
   const i = enemies.findIndex((e) => e.id === id);
   const e = enemies[i]!;
-  if (kind === 'bear') {
-    // Nothing hurts the Old Bear. It just looks at you.
-    events.push({ type: 'shrugged', id, at });
-    return;
-  }
   if (e.hp - dmg <= 0) {
     enemies.splice(i, 1);
     events.push({ type: 'killed', id, kind, at });
@@ -256,7 +250,7 @@ function push(
   const t = tileAt({ tiles, level: s.level }, to.x, to.y);
   if (!t || !wolfWalkable(t) || t === 'exit' || enemies.some((o) => o.x === to.x && o.y === to.y))
     return null;
-  const onSnare = t === 'snare';
+  const onSnare = t === 'snare' && e.kind !== 'bear';
   enemies[k] = {
     ...e,
     x: to.x,
@@ -289,7 +283,8 @@ export function step(s: State, dir: Dir): StepResult {
 
   if (target) {
     // Into an enemy: the Knife stabs, the Bow shoots point-blank, Boots leap over it.
-    if (face === 'Knife' || face === 'Bow') {
+    // (Never the Old Bear: the Ranger won't hurt him.)
+    if ((face === 'Knife' || face === 'Bow') && target.kind !== 'bear') {
       const dmg = face === 'Knife' ? 2 : 1;
       events.push(
         face === 'Knife'
@@ -322,6 +317,7 @@ export function step(s: State, dir: Dir): StepResult {
     // An arrow along the row, over grass and water, to the first thing in the way.
     for (const c of along(s, x, y, row)) {
       const e = enemyAt(s, c.x, c.y);
+      if (e?.kind === 'bear') break; // no arrow for the Old Bear: just roll
       if (e) {
         events.push({ type: 'shot', from: { x, y }, to: c, target: e.id });
         hurt(enemies, e.id, 1, events, e.kind, c);
@@ -525,7 +521,8 @@ function enemyPhase(s: State, events: GameEvent[]): State {
       const to = chase(cur, e);
       if (to) {
         events.push({ type: 'enemyMoved', id: e.id, from: { x: e.x, y: e.y }, to });
-        const onSnare = tileAt(cur, to.x, to.y) === 'snare';
+        // The Old Bear is too big for a snare: he steps through it.
+        const onSnare = tileAt(cur, to.x, to.y) === 'snare' && e.kind !== 'bear';
         enemies[k] = { ...enemies[k]!, x: to.x, y: to.y, snared: onSnare ? SNARE_TURNS : 0 };
         if (onSnare) {
           tiles = tiles.map((tt, i) => (i === to.y * s.level.width + to.x ? 'grass' : tt));

@@ -1,11 +1,11 @@
 id: 4-10
 name: Antler Meadow
-par: 10
+par: 14
 hint: Three floors; HP carries over
 loadout: Leaf Horn Knife Bow Leaf Trap Leaf Leaf
-teaches: fern,boar
+teaches: fern,boar,bear
 ---
 .......
 >fb....
-#...w..
+#..Bw..
 ####.@b

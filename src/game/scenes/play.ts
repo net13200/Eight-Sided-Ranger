@@ -255,8 +255,7 @@ export class PlayScene implements Scene {
           t: 0,
         });
         sound = 'horn';
-      } else if (e.type === 'shrugged') sound = 'bump';
-      else if (
+      } else if (
         e.type === 'bitten' ||
         e.type === 'charged' ||
         e.type === 'gored' ||
