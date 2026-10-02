@@ -323,16 +323,146 @@ export function drawStoryArt(
     case 'knight': {
       // Across the fence, in the snow, the six-sided Knight.
       ground(ctx, cx, cy, '#d8e2ec');
+      shadow(ctx, cx + 80, cy + 84, 34);
+      knightCube(ctx, cx + 80, cy + 84, 30, Math.sin(t * 1.5) * 0.12);
       fence(ctx, cx - 160, cx + 160, cy + 96);
       snowfall(ctx, cx, cy, still ? 0 : time);
-      ranger(ctx, cx - 70, cy + 104, 26, tt, Math.abs(Math.sin(t * 3)) * 5);
-      shadow(ctx, cx + 80, cy + 92, 30);
-      d6(ctx, cx + 80, cy + 62, 42, Math.sin(t * 1.5) * 0.4, 6);
+      ranger(ctx, cx - 70, cy + 108, 26, tt, Math.abs(Math.sin(t * 3)) * 5);
       break;
     }
     case 'district':
       districtArt(ctx, page.district ?? 0, cx, cy, t, tt);
       break;
+  }
+  ctx.restore();
+}
+
+/** Outline and fill in a face's unit space (as Six Sided Knight paints its icons). */
+function paint(ctx: Ctx, fill: string, lw = 0.12): void {
+  ctx.lineWidth = lw;
+  ctx.strokeStyle = '#1a1622';
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+  ctx.fillStyle = fill;
+  ctx.fill();
+}
+
+/** The Knight's faces, drawn as in Six Sided Knight, in a [-1, 1] box. */
+const KNIGHT_ICONS: Record<'Sword' | 'Shield' | 'Heart', (ctx: Ctx) => void> = {
+  Sword(ctx) {
+    ctx.save();
+    ctx.rotate(Math.PI / 4);
+    ctx.beginPath();
+    ctx.moveTo(-0.15, 0.22);
+    ctx.lineTo(-0.15, -0.68);
+    ctx.lineTo(0, -0.98);
+    ctx.lineTo(0.15, -0.68);
+    ctx.lineTo(0.15, 0.22);
+    ctx.closePath();
+    paint(ctx, '#d7dee8');
+    ctx.beginPath();
+    ctx.roundRect(-0.46, 0.22, 0.92, 0.16, 0.06);
+    paint(ctx, '#c49a4c');
+    ctx.beginPath();
+    ctx.rect(-0.09, 0.38, 0.18, 0.36);
+    paint(ctx, '#6d4a2b');
+    ctx.beginPath();
+    ctx.arc(0, 0.84, 0.13, 0, Math.PI * 2);
+    paint(ctx, '#c49a4c');
+    ctx.restore();
+  },
+  Shield(ctx) {
+    ctx.beginPath();
+    ctx.moveTo(-0.74, -0.82);
+    ctx.lineTo(0.74, -0.82);
+    ctx.lineTo(0.74, -0.1);
+    ctx.quadraticCurveTo(0.72, 0.56, 0, 0.96);
+    ctx.quadraticCurveTo(-0.72, 0.56, -0.74, -0.1);
+    ctx.closePath();
+    paint(ctx, '#4f8fe0');
+    ctx.beginPath();
+    ctx.moveTo(0, -0.7);
+    ctx.lineTo(0, 0.78);
+    ctx.moveTo(-0.6, -0.28);
+    ctx.lineTo(0.6, -0.28);
+    ctx.lineWidth = 0.16;
+    ctx.strokeStyle = '#cfe2ff';
+    ctx.stroke();
+  },
+  Heart(ctx) {
+    ctx.beginPath();
+    ctx.moveTo(0, 0.86);
+    ctx.bezierCurveTo(-0.98, 0.18, -0.86, -0.78, -0.42, -0.78);
+    ctx.bezierCurveTo(-0.18, -0.78, 0, -0.58, 0, -0.42);
+    ctx.bezierCurveTo(0, -0.58, 0.18, -0.78, 0.42, -0.78);
+    ctx.bezierCurveTo(0.86, -0.78, 0.98, 0.18, 0, 0.86);
+    ctx.closePath();
+    paint(ctx, '#e5485f');
+  },
+};
+
+/**
+ * The Knight from Six Sided Knight: a cube seen from above-front, its faces
+ * tinted by role (Sword warm, Shield blue, Heart green) with their icons.
+ * Stands on (x, y), edge `a`, rocking by `tilt`.
+ */
+function knightCube(ctx: Ctx, x: number, y: number, a: number, tilt: number): void {
+  const c = Math.cos(Math.PI / 6);
+  const ex = { x: c * a, y: -0.5 * a };
+  const ey = { x: -c * a, y: -0.5 * a };
+  const ez = { x: 0, y: -a };
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(tilt);
+  const faces: [
+    string,
+    keyof typeof KNIGHT_ICONS,
+    { x: number; y: number },
+    { x: number; y: number },
+    { x: number; y: number },
+    string,
+  ][] = [
+    // [tint, icon, centre, u (icon right), v (icon down), shade]
+    [
+      '#b3cff5',
+      'Shield',
+      { x: (ey.x + ez.x) / 2, y: (ey.y + ez.y) / 2 },
+      { x: -ey.x / 2, y: -ey.y / 2 },
+      { x: 0, y: a / 2 },
+      'rgba(0,0,0,0.08)',
+    ],
+    [
+      '#b8e6b9',
+      'Heart',
+      { x: (ex.x + ez.x) / 2, y: (ex.y + ez.y) / 2 },
+      { x: ex.x / 2, y: ex.y / 2 },
+      { x: 0, y: a / 2 },
+      'rgba(0,0,0,0.22)',
+    ],
+    [
+      '#f4b39c',
+      'Sword',
+      { x: ez.x + (ex.x + ey.x) / 2, y: ez.y + (ex.y + ey.y) / 2 },
+      { x: ex.x / 2, y: ex.y / 2 },
+      { x: -ey.x / 2, y: -ey.y / 2 },
+      'rgba(255,255,255,0.12)',
+    ],
+  ];
+  for (const [tint, icon, m, u, v, shade] of faces) {
+    ctx.save();
+    ctx.transform(u.x, u.y, v.x, v.y, m.x, m.y);
+    ctx.beginPath();
+    ctx.rect(-1, -1, 2, 2);
+    ctx.fillStyle = tint;
+    ctx.fill();
+    ctx.fillStyle = shade;
+    ctx.fill();
+    ctx.lineWidth = 0.08;
+    ctx.strokeStyle = '#1a1622';
+    ctx.stroke();
+    ctx.scale(0.74, 0.74);
+    KNIGHT_ICONS[icon](ctx);
+    ctx.restore();
   }
   ctx.restore();
 }
