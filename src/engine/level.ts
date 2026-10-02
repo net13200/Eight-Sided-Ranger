@@ -29,12 +29,12 @@ export function parseLevel(text: string): Level {
     for (let x = 0; x < width; x++) {
       const ch = row[x] ?? '#';
       if (ch === '@') start = { x, y };
-      if (ch === 'w' || ch === 's' || ch === 'z' || ch === 'b') {
-        const kind = ch === 's' ? 'stag' : ch === 'b' ? 'boar' : 'wolf';
+      if (ch === 'w' || ch === 's' || ch === 'z' || ch === 'b' || ch === 'h') {
+        const kind = ch === 's' ? 'stag' : ch === 'b' ? 'boar' : ch === 'h' ? 'owl' : 'wolf';
         enemies.push({ kind, x, y, hp: ENEMY_HP[kind], ...(ch === 'z' ? { asleep: true } : {}) });
       }
       const tile = TILE_GLYPH[ch] ?? 'grass';
-      if (!(ch in TILE_GLYPH) && !'@wszb'.includes(ch)) throw new Error(`Unknown glyph '${ch}'`);
+      if (!(ch in TILE_GLYPH) && !'@wszbh'.includes(ch)) throw new Error(`Unknown glyph '${ch}'`);
       tiles.push(tile);
     }
   });

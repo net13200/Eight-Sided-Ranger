@@ -1,0 +1,12 @@
+id: 5-09
+name: Briar Grove
+par: 11
+hint: Thorns, and a tree of your own
+loadout: Leaf Acorn Boots Knife Leaf Leaf Leaf Leaf
+teaches: acorn,bramble
+---
+.#%>#.
+##..#.
+#.#%..
+.#....
+##.%@.

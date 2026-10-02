@@ -240,7 +240,14 @@ export class PlayScene implements Scene {
       else if (e.type === 'carried') sound = 'swing';
       else if (e.type === 'sank') sound = 'bump';
       else if (e.type === 'snareLaid' || e.type === 'snared') sound = 'snare';
-      else if (e.type === 'pushed') {
+      else if (e.type === 'planted') sound = 'plant';
+      else if (e.type === 'hooted') sound = 'hoot';
+      else if (e.type === 'pricked') {
+        const c = center(e.at.x, e.at.y);
+        this.flashes.push({ kind: 'stab', from: c, to: c, t: 0 });
+        this.hurtT = 1;
+        sound = 'hurt';
+      } else if (e.type === 'pushed') {
         this.flashes.push({
           kind: 'horn',
           from: center(this.state.x, this.state.y),

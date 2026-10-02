@@ -1,0 +1,12 @@
+id: 5-04
+name: Thorn Boots
+par: 9
+hint: Boots face-down: thorns can't hurt
+hp: 1
+loadout: Leaf Leaf Leaf Boots Leaf Leaf Leaf Leaf
+teaches: bramble,boots
+---
+......>
+.#%#%.%
+.####..
+%@.....

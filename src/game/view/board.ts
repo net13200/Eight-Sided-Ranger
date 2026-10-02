@@ -124,6 +124,7 @@ export const FOREST = {
   post: '#8a5a2b',
   spring: '#5fc6c9',
   danger: 'rgba(255,90,70,0.16)',
+  watched: 'rgba(170,200,255,0.16)',
 };
 
 const ROLE: Readonly<Record<string, string>> = {
@@ -135,6 +136,7 @@ const ROLE: Readonly<Record<string, string>> = {
   Cloak: '#a893e0',
   Herb: '#8fd07a',
   Horn: '#e8c46a',
+  Acorn: '#c99a5b',
   Leaf: '#e6e0c8',
 };
 export const faceColor = (face: string): string => ROLE[face] ?? '#d9d2e8';
@@ -167,7 +169,7 @@ export function drawForest(ctx: Ctx, s: State, t: number): void {
   // Stags' and boars' rows are dangerous (unless you're hidden).
   if (!hidden(s))
     for (const e of s.enemies)
-      if ((e.kind === 'stag' || e.kind === 'boar') && e.snared === 0) drawLane(ctx, s, e);
+      if (e.kind !== 'wolf' && e.snared === 0 && !e.blind) drawLane(ctx, s, e);
 }
 
 function drawTile(
@@ -193,6 +195,63 @@ function drawTile(
     case 'tree':
       pine(ctx, m.x, m.y + 4, 13, look.pine);
       break;
+    case 'sapling':
+      // A young oak, two leaves on a stem.
+      ctx.strokeStyle = '#8a5a2b';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(m.x, m.y + 7);
+      ctx.lineTo(m.x, m.y - 4);
+      ctx.stroke();
+      ctx.fillStyle = '#7cc46a';
+      for (const sx of [-1, 1]) {
+        ctx.beginPath();
+        ctx.ellipse(m.x + sx * 5, m.y - 5, 5, 3, sx * -0.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+    case 'bramble': {
+      // A dark thicket of thorny canes.
+      tri(ctx, c, 0.1);
+      ctx.fillStyle = '#3a2033';
+      ctx.fill();
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = '#9a4a64';
+      ctx.lineWidth = 2;
+      const canes: [number, number, number, number][] = [
+        [-12, 7, 10, -6],
+        [-8, -4, 12, 6],
+        [-2, 9, 2, -11],
+      ];
+      ctx.beginPath();
+      for (const [x1, y1, x2, y2] of canes) {
+        ctx.moveTo(m.x + x1, m.y + y1 + 2);
+        ctx.quadraticCurveTo(m.x, m.y - 4, m.x + x2, m.y + y2 + 2);
+      }
+      ctx.stroke();
+      // Thorns along the canes.
+      ctx.strokeStyle = '#f0c8d4';
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      for (const [x1, y1, x2, y2] of canes)
+        for (const k of [0.25, 0.5, 0.75]) {
+          const px = m.x + x1 + (x2 - x1) * k;
+          const py = m.y + 2 + y1 + (y2 - y1) * k - Math.sin(k * Math.PI) * 3;
+          const nx = -(y2 - y1);
+          const ny = x2 - x1;
+          const len = Math.hypot(nx, ny);
+          ctx.moveTo(px, py);
+          ctx.lineTo(px + (nx / len) * 3.5, py + (ny / len) * 3.5);
+        }
+      ctx.stroke();
+      ctx.fillStyle = '#c23a5a';
+      ctx.beginPath();
+      ctx.arc(m.x + 5, m.y + 1, 2, 0, Math.PI * 2);
+      ctx.arc(m.x - 5, m.y + 6, 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.lineCap = 'butt';
+      break;
+    }
     case 'currentE':
     case 'currentW': {
       // Chevrons drifting downstream.
@@ -360,7 +419,8 @@ function drawLane(ctx: Ctx, s: State, e: Enemy): void {
       if (!t || !seeThrough(t) || s.enemies.some((o) => o.x === x && o.y === e.y)) break;
       if (t === 'fern') continue; // safe to stand in, though it sees past
       tri(ctx, corners(x, e.y), 0.05);
-      ctx.fillStyle = FOREST.danger;
+      // An owl's row is watched, not dangerous in itself.
+      ctx.fillStyle = e.kind === 'owl' ? FOREST.watched : FOREST.danger;
       ctx.fill();
     }
   }
@@ -424,6 +484,41 @@ export function drawEnemy(ctx: Ctx, e: Enemy, p: Pt, t: number): void {
     }
     ctx.fillStyle = '#2b2d33';
     ctx.fillRect(-1.5, 3 + bob, 3, 2);
+  } else if (e.kind === 'owl') {
+    // The owl: round, tufted, with big moon eyes.
+    ctx.fillStyle = '#8a7a66';
+    ctx.strokeStyle = '#2a2018';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-8, -9 + bob);
+    ctx.lineTo(-5, -5 + bob);
+    ctx.lineTo(5, -5 + bob);
+    ctx.lineTo(8, -9 + bob);
+    ctx.lineTo(9, 2 + bob);
+    ctx.quadraticCurveTo(0, 12 + bob, -9, 2 + bob);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#d9c9a8';
+    ctx.beginPath();
+    ctx.ellipse(0, 4 + bob, 5, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    for (const sx of [-1, 1]) {
+      ctx.fillStyle = '#ffe9a0';
+      ctx.beginPath();
+      ctx.arc(sx * 4, -2 + bob, 3.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#1a1208';
+      ctx.beginPath();
+      ctx.arc(sx * 4, -2 + bob, 1.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#e0a040';
+    ctx.beginPath();
+    ctx.moveTo(-1.3, 1 + bob);
+    ctx.lineTo(1.3, 1 + bob);
+    ctx.lineTo(0, 3.5 + bob);
+    ctx.fill();
   } else if (e.kind === 'boar') {
     // The boar: a low bristly head, tusks and a snout.
     ctx.fillStyle = '#6b4a35';
@@ -747,6 +842,21 @@ export function drawFaceIcon(ctx: Ctx, face: string, x: number, y: number, size:
       ctx.moveTo(-0.65, -0.42);
       ctx.lineTo(-0.82, -0.3);
       stroke('#5a3a1a', 0.16);
+      break;
+    case 'Acorn':
+      ctx.beginPath();
+      ctx.moveTo(-0.5, -0.15);
+      ctx.quadraticCurveTo(-0.5, 0.55, 0, 0.8);
+      ctx.quadraticCurveTo(0.5, 0.55, 0.5, -0.15);
+      ctx.closePath();
+      fill('#c99a5b');
+      ctx.beginPath();
+      ctx.ellipse(0, -0.25, 0.6, 0.28, 0, 0, Math.PI * 2);
+      fill('#7a5230');
+      ctx.beginPath();
+      ctx.moveTo(0, -0.5);
+      ctx.lineTo(0.12, -0.8);
+      stroke('#5a3a1a', 0.12);
       break;
     case 'Leaf':
       ctx.beginPath();

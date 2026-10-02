@@ -1,0 +1,11 @@
+id: 5-06
+name: Oak Shield
+par: 12
+hint: A tree stops a charge
+loadout: Leaf Acorn Knife Leaf Leaf Leaf Leaf Leaf
+teaches: acorn,boar
+---
+..~>.#
+b....#
+#..~##
+##..b@

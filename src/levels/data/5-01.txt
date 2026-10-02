@@ -1,0 +1,10 @@
+id: 5-01
+name: The Owl
+par: 8
+hint: Keep out of the owl's row
+loadout: Leaf Leaf Leaf Leaf Leaf Leaf Leaf Leaf
+teaches: owl,sleeper
+---
+...z>..
+.@~....
+......h

@@ -198,6 +198,40 @@ describe('rules', () => {
     expect(s.hp).toBe(3);
   });
 
+  it('an owl that sees you along its row hoots, and sleeping wolves wake', () => {
+    const blank = 'Leaf Leaf Leaf Leaf Leaf Leaf Leaf Leaf';
+    // Out of the owl's row: nothing.
+    expect(play(LV('...h\n.@...\n....z', blank), 'E').enemies[1]!.asleep).toBe(true);
+    const r = step(LV('h.@...\n.....z', blank), 'E');
+    expect(r.events.map((e) => e.type)).toContain('hooted');
+    const wolf = r.state.enemies[1]!;
+    expect(wolf).toMatchObject({ asleep: false, x: 5, y: 1 }); // awake, not moved yet
+    // A tree between, or a fern to stand in: the owl can't see.
+    expect(play(LV('h#@...\n.....z', blank), 'E').enemies[1]!.asleep).toBe(true);
+    expect(play(LV('h.@f..\n.....z', blank), 'E').enemies[1]!.asleep).toBe(true);
+  });
+
+  it('brambles prick (1 HP) unless the Boots are face-down; wolves keep out of them', () => {
+    const blank = 'Leaf Leaf Leaf Leaf Leaf Leaf Leaf Leaf';
+    expect(play(LV('@%.', blank), 'E').hp).toBe(2);
+    // Boots in the flat slot land face-down rolling S (no leap across a flat edge).
+    expect(play(LV('@.\n%.', 'Leaf Leaf Leaf Leaf Boots Leaf Leaf Leaf'), 'S').hp).toBe(3);
+    // The wolf can't reach the Ranger except through the thorns: it stays put.
+    const s = play(LV('w%@.', blank), 'E');
+    expect(s.enemies[0]!.x).toBe(0);
+    expect(s.hp).toBe(3);
+    const hurt = startState(parseLevel(`id: t\nname: T\nhp: 1\nloadout: ${blank}\n---\n@%.`));
+    expect(play(hurt, 'E').status).toBe('lost');
+  });
+
+  it('the Acorn face-down plants a sapling that grows into a tree when you leave', () => {
+    let s = play(LV('@....', facing('Acorn')), 'E');
+    expect(s.tiles[1]).toBe('sapling');
+    s = play(s, 'E');
+    expect(s.tiles[1]).toBe('tree');
+    expect(step(s, 'W').consumed).toBe(false); // can't roll back into the tree
+  });
+
   it('the Bow shoots along the row, over water; a wolf takes two arrows', () => {
     let s = LV('@.~~.w.#', facing('Bow'));
     s = play(s, 'E');

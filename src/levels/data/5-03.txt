@@ -1,0 +1,10 @@
+id: 5-03
+name: Thornbrake
+par: 7
+hint: Thorns: a short cut, at a price
+loadout: Leaf Leaf Leaf Leaf Leaf Leaf Leaf Leaf
+teaches: bramble
+---
+.>....%.
+...#.#.@
+...####.

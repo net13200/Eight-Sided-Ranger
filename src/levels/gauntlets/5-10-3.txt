@@ -1,0 +1,11 @@
+id: 5-10-3
+name: The Hush: the perch
+par: 8
+hint: From 1 HP: one step each
+hp: 1
+loadout: Leaf Acorn Boots Knife Bow Cloak Leaf Leaf
+teaches: owl
+---
+..@...%.h
+.....>...
+...z.....

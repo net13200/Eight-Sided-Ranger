@@ -1,0 +1,12 @@
+id: 5-08
+name: Owl's Oak
+par: 13
+hint: Wall the wolves out with trees
+loadout: Leaf Acorn Leaf Leaf Leaf Leaf Leaf Leaf
+teaches: owl,acorn
+---
+.....####
+....~@..z
+z..>.#...
+...h...##
+........#

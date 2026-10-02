@@ -1,0 +1,12 @@
+id: 5-10
+name: The Hush
+par: 10
+hint: Three floors; HP carries over
+loadout: Leaf Acorn Boots Knife Bow Cloak Leaf Leaf
+teaches: owl,bramble
+---
+.>.....
+......z
+.%%....
+h....@~
+.......

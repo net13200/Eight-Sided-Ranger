@@ -1,0 +1,11 @@
+id: 5-07
+name: Hooded
+par: 8
+hint: The Cloak hides you from owls too
+loadout: Leaf Leaf Knife Leaf Cloak Leaf Leaf Leaf
+teaches: owl,cloak
+---
+@..####
+..#.~..
+#.....h
+###z>..

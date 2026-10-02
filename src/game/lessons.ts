@@ -93,6 +93,7 @@ export const FACE_INFO: Readonly<Record<string, string>> = {
   Cloak: tk('On top: nobody can see you.'),
   Boots: tk('Leap over the next triangle in the row.'),
   Herb: tk('Face-down on a spring: heal 1.'),
+  Acorn: tk('Face-down on grass: plants a sapling. Step off and it grows into a tree.'),
   Horn: tk('Blows the first animal in the row one triangle back. It loses its turn.'),
   Leaf: tk('Just a leaf.'),
 };
@@ -119,6 +120,32 @@ Object.assign(LESSONS, {
     title: tk('Boars'),
     text: tk(
       'A boar charges along its row when it sees you, stops right beside you and gores you. Get out of its row, or let a snare stop the charge.',
+    ),
+  },
+} satisfies Record<string, Lesson>);
+
+/** Lessons for the Hush. */
+Object.assign(LESSONS, {
+  '5-01': {
+    title: tk('Owls'),
+    text: tk(
+      'An owl never moves or bites, but end your roll in its row with nothing between you, and it hoots: every sleeping wolf wakes. Its row is shaded pale.',
+    ),
+  },
+  '5-03': {
+    title: tk('Brambles'),
+    text: tk(
+      'You can roll into brambles, but the thorns cost 1 HP. Wolves and boars won’t go into them at all.',
+    ),
+  },
+  '5-04': {
+    title: tk('Boots in the thorns'),
+    text: tk('Land in brambles with the Boots face-down and the thorns can’t hurt you.'),
+  },
+  '5-05': {
+    title: tk('The Acorn'),
+    text: tk(
+      'Land with the Acorn face-down on grass and you plant a sapling. When you roll off, it grows into a tree: nothing gets past it, nothing sees through it.',
     ),
   },
 } satisfies Record<string, Lesson>);

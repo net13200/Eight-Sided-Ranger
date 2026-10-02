@@ -26,7 +26,10 @@ export type Tile =
   | 'currentE'
   | 'currentW'
   | 'pad'
-  | 'fern';
+  | 'fern'
+  | 'bramble'
+  /** An acorn planted under the die; a tree once the die leaves. */
+  | 'sapling';
 
 export const TILE_GLYPH: Readonly<Record<string, Tile>> = {
   '.': 'grass',
@@ -40,14 +43,22 @@ export const TILE_GLYPH: Readonly<Record<string, Tile>> = {
   '{': 'currentW',
   o: 'pad',
   f: 'fern',
+  '%': 'bramble',
 };
 
 /** Tiles the die can stand on. */
 export function walkable(t: Tile): boolean {
-  return wolfWalkable(t) || t === 'currentE' || t === 'currentW' || t === 'pad';
+  return (
+    wolfWalkable(t) ||
+    t === 'currentE' ||
+    t === 'currentW' ||
+    t === 'pad' ||
+    t === 'bramble' ||
+    t === 'sapling'
+  );
 }
 
-/** Tiles wolves walk on: not currents (they'd be swept off) or lily pads (they'd sink). */
+/** Tiles wolves walk on: not currents (they'd be swept off), lily pads (they'd sink) or brambles. */
 export function wolfWalkable(t: Tile): boolean {
   return t === 'grass' || t === 'exit' || t === 'spring' || t === 'snare' || t === 'fern';
 }
@@ -64,7 +75,7 @@ export function seeThrough(t: Tile): boolean {
 
 // ---------- state ----------
 
-export type EnemyKind = 'wolf' | 'stag' | 'boar';
+export type EnemyKind = 'wolf' | 'stag' | 'boar' | 'owl';
 
 export interface Enemy {
   readonly id: number;
@@ -76,6 +87,8 @@ export interface Enemy {
   readonly snared: number;
   /** A sleeping wolf: still until the Ranger comes within two rolls (unseen) or hurts it. */
   readonly asleep?: boolean;
+  /** An owl that never hoots (only for the teaches-check: "what if it didn't see?"). */
+  readonly blind?: boolean;
   /** Blown back by the Horn this turn: it loses its action. */
   readonly startled?: boolean;
 }
@@ -114,7 +127,7 @@ export interface State {
 }
 
 export const MAX_HP = 3;
-export const ENEMY_HP: Readonly<Record<EnemyKind, number>> = { wolf: 2, stag: 3, boar: 2 };
+export const ENEMY_HP: Readonly<Record<EnemyKind, number>> = { wolf: 2, stag: 3, boar: 2, owl: 1 };
 export const SNARE_TURNS = 3;
 
 export function startState(level: Level): State {
@@ -162,6 +175,10 @@ export type GameEvent =
   | { type: 'pushed'; id: number; from: Pos; to: Pos }
   | { type: 'gored'; id: number; from: Pos }
   | { type: 'sank'; at: Pos }
+  | { type: 'hooted'; id: number; at: Pos }
+  | { type: 'pricked'; at: Pos }
+  | { type: 'planted'; at: Pos }
+  | { type: 'grew'; at: Pos }
   | { type: 'won' }
   | { type: 'lost' };
 
@@ -341,10 +358,12 @@ export function step(s: State, dir: Dir): StepResult {
   // Landing (only if the die moved).
   const moved = x !== s.x || y !== s.y;
   if (moved) {
-    // A lily pad left behind sinks.
-    if (tileAt(s, s.x, s.y) === 'pad') {
-      tiles = tiles.map((tt, i) => (i === s.y * s.level.width + s.x ? 'water' : tt));
-      events.push({ type: 'sank', at: { x: s.x, y: s.y } });
+    // A lily pad left behind sinks; a sapling left behind grows into a tree.
+    const left = tileAt(s, s.x, s.y);
+    if (left === 'pad' || left === 'sapling') {
+      const into = left === 'pad' ? 'water' : 'tree';
+      tiles = tiles.map((tt, i) => (i === s.y * s.level.width + s.x ? into : tt));
+      events.push({ type: left === 'pad' ? 'sank' : 'grew', at: { x: s.x, y: s.y } });
     }
     // A current carries the die along the row, faces unchanged, until it's off
     // the current or something blocks the way.
@@ -366,9 +385,26 @@ export function step(s: State, dir: Dir): StepResult {
       tiles = tiles.map((tt, i) => (i === y * s.level.width + x ? 'snare' : tt));
       events.push({ type: 'snareLaid', at: { x, y } });
     }
+    if (bottom === 'Acorn' && under === 'grass') {
+      tiles = tiles.map((tt, i) => (i === y * s.level.width + x ? 'sapling' : tt));
+      events.push({ type: 'planted', at: { x, y } });
+    }
     if (bottom === 'Herb' && under === 'spring' && hp < MAX_HP) {
       hp += 1;
       events.push({ type: 'healed', hp });
+    }
+    // Thorns: 1 damage, unless the Boots are underneath.
+    if (under === 'bramble' && bottom !== 'Boots') {
+      hp -= 1;
+      events.push({ type: 'pricked', at: { x, y } });
+      if (hp <= 0) {
+        events.push({ type: 'lost' });
+        return {
+          state: { ...s, tiles, x, y, orient, hp: 0, enemies, moves: s.moves + 1, status: 'lost' },
+          events,
+          consumed: true,
+        };
+      }
     }
   }
 
@@ -387,6 +423,18 @@ function enemyPhase(s: State, events: GameEvent[]): State {
   let { tiles, hp } = s;
   const enemies = [...s.enemies];
   const unseen = hidden(s);
+  // Owls first: an owl that sees the Ranger along its row hoots, and every
+  // sleeping wolf wakes (to act from the next turn).
+  const hooting = unseen
+    ? []
+    : enemies.filter((e) => e.kind === 'owl' && !e.blind && e.y === s.y && clearRow(s, e, s.x));
+  for (const e of hooting) events.push({ type: 'hooted', id: e.id, at: { x: e.x, y: e.y } });
+  if (hooting.length)
+    enemies.forEach((e, k) => {
+      if (!e.asleep) return;
+      enemies[k] = { ...e, asleep: false, startled: true };
+      events.push({ type: 'woke', id: e.id, at: { x: e.x, y: e.y } });
+    });
   for (let k = 0; k < enemies.length; k++) {
     const e = enemies[k]!;
     if (e.startled) {
@@ -407,6 +455,7 @@ function enemyPhase(s: State, events: GameEvent[]): State {
       continue;
     }
     const cur: State = { ...s, tiles, enemies, hp };
+    if (e.kind === 'owl') continue;
     if (e.kind === 'stag') {
       if (e.y === s.y && clearRow(cur, e, s.x)) {
         hp -= 1;

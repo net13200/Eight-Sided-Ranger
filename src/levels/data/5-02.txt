@@ -1,0 +1,10 @@
+id: 5-02
+name: Night Watch
+par: 9
+hint: An owl can be shot
+loadout: Leaf Leaf Knife Bow Leaf Leaf Leaf Leaf
+teaches: owl,bow
+---
+...~>.
+...h..
+..@##z

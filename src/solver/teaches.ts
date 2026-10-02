@@ -31,6 +31,8 @@ interface FaceTeach {
 interface CreatureTeach {
   readonly kind: 'creature';
   readonly is: (e: Enemy) => boolean;
+  /** Instead of taking it away, tame it (an owl still sits there, but sees nothing). */
+  readonly tame?: (e: Enemy) => Enemy;
 }
 interface TileTeach {
   readonly kind: 'tile';
@@ -55,12 +57,21 @@ export const TEACH_SPECS = {
   cloak: face('Cloak', (f) => f.cloaked),
   herb: face('Herb', (f) => f.heals),
   horn: face('Horn', (f) => f.pushes),
+  acorn: face('Acorn', (f) => f.plants),
   stag: { kind: 'creature', is: (e: Enemy) => e.kind === 'stag' },
   sleeper: { kind: 'creature', is: (e: Enemy) => !!e.asleep },
   boar: { kind: 'creature', is: (e: Enemy) => e.kind === 'boar' },
+  // An owl matters for what it sees, not where it sits (or as a target).
+  owl: {
+    kind: 'creature',
+    is: (e: Enemy) => e.kind === 'owl',
+    tame: (e: Enemy) => ({ ...e, blind: true }),
+  },
   current: { kind: 'tile', tiles: ['currentE', 'currentW'], used: (f: Facts) => f.carried },
   pad: { kind: 'tile', tiles: ['pad'], used: (f: Facts) => f.sank },
   fern: { kind: 'tile', tiles: ['fern'], used: (f: Facts) => f.ferns, instead: 'grass' },
+  // Brambles are a way through (at a price, or in Boots): without them, a wall.
+  bramble: { kind: 'tile', tiles: ['bramble'], used: (f: Facts) => f.brambles, instead: 'tree' },
 } as const satisfies Record<string, FaceTeach | CreatureTeach | TileTeach>;
 
 export const TEACHES = [
@@ -90,6 +101,8 @@ export function routeFacts(level: Level, path: readonly Dir[]) {
     sank: 0,
     pushes: 0,
     ferns: 0,
+    plants: 0,
+    brambles: 0,
   };
   let s: State = startState(level);
   for (const d of path) {
@@ -104,6 +117,7 @@ export function routeFacts(level: Level, path: readonly Dir[]) {
       if (e.type === 'carried') f.carried++;
       if (e.type === 'sank') f.sank++;
       if (e.type === 'pushed') f.pushes++;
+      if (e.type === 'planted') f.plants++;
     }
     // Hidden while an enemy that could act is around.
     if (
@@ -119,6 +133,7 @@ export function routeFacts(level: Level, path: readonly Dir[]) {
       r.state.enemies.some((e) => e.snared === 0)
     )
       f.ferns++;
+    if (tileAt(r.state, r.state.x, r.state.y) === 'bramble') f.brambles++;
     s = r.state;
   }
   return f;
@@ -133,8 +148,15 @@ export function withoutFace(level: Level, name: string): Level {
 export function without(level: Level, teach: Exclude<Teach, 'roll'>): Level {
   const spec: FaceTeach | CreatureTeach | TileTeach = TEACH_SPECS[teach];
   if (spec.kind === 'face') return withoutFace(level, spec.face);
-  if (spec.kind === 'creature')
-    return { ...level, enemies: level.enemies.filter((e) => !spec.is(e)) };
+  if (spec.kind === 'creature') {
+    const tame = spec.tame;
+    return {
+      ...level,
+      enemies: tame
+        ? level.enemies.map((e) => (spec.is(e) ? tame(e) : e))
+        : level.enemies.filter((e) => !spec.is(e)),
+    };
+  }
   const instead = spec.instead ?? 'water';
   return { ...level, tiles: level.tiles.map((t) => (spec.tiles.includes(t) ? instead : t)) };
 }

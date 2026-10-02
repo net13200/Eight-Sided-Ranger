@@ -1,0 +1,10 @@
+id: 5-05
+name: The Acorn
+par: 6
+hint: Plant it, then step off
+loadout: Leaf Leaf Leaf Acorn Leaf Leaf Leaf Leaf
+teaches: acorn
+---
+@...>
+w#..w
+###~~

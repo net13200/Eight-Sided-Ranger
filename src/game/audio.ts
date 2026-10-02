@@ -13,6 +13,8 @@ export type SfxName =
   | 'kill'
   | 'swing'
   | 'horn'
+  | 'hoot'
+  | 'plant'
   | 'leap'
   | 'snare'
   | 'hurt'
@@ -221,6 +223,16 @@ export class Audio {
         this.tone(t, 'sawtooth', 196, 220, 0.14, 0.07);
         this.tone(t + 0.12, 'triangle', 294, 294, 0.4, 0.12);
         this.tone(t + 0.12, 'sine', 588, 588, 0.35, 0.04);
+        break;
+      case 'hoot':
+        // Two soft falling hoots.
+        this.tone(t, 'sine', 392, 349, 0.22, 0.12);
+        this.tone(t + 0.3, 'sine', 392, 330, 0.32, 0.12);
+        break;
+      case 'plant':
+        // A pat of earth, and a little bud opening.
+        this.noiseHit(t, 0.05, 600, 0.25);
+        this.tone(t + 0.06, 'triangle', 523, 784, 0.16, 0.1);
         break;
       case 'leap':
         this.tone(t, 'triangle', 330, 660, 0.12, 0.12);
