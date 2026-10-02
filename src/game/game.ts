@@ -14,7 +14,7 @@ import { MenuScene } from './scenes/menu';
 import { CampaignMode, type PlayMode } from './play-mode';
 import { PlayScene } from './scenes/play';
 import { StoryScene } from './scenes/story';
-import { storyBeforeLevel, type StoryPage } from './story';
+import { ENDING, STORY_KEYS, storyBeforeLevel, type StoryPage } from './story';
 import { isCompleted } from '../meta/progress';
 import { tk } from '../i18n';
 import type { Scene } from './scenes/scene';
@@ -87,6 +87,12 @@ export class Game {
       },
       tk('Play'),
     );
+  }
+
+  /** The ending, after the Great Oak; then back to the map at the last level. */
+  goEnding(index: number): void {
+    this.save.update((d) => (d.seen[STORY_KEYS.ending] = true));
+    this.goStory(ENDING, () => this.goMap(index), tk('Map'));
   }
 
   goStory(pages: readonly StoryPage[], done: () => void, finalLabel?: string): void {

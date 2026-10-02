@@ -1,4 +1,7 @@
-/** Every level's par route, played with the arrow keys, wins ★★★ in the browser (a gauntlet floor by floor). */
+/**
+ * Every level's par route, played with the arrow keys, wins ★★★ in the browser
+ * (a gauntlet floor by floor); the last one leads into the ending.
+ */
 import { readdirSync, readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { parseLevel, startState } from '../../src/engine';
@@ -36,6 +39,11 @@ test.describe('par routes', () => {
         if (f + 1 < floors.length) await page.getByTestId('next').click();
       }
       await expect(page.getByTestId('stars')).toHaveText('★★★');
+      if (i === levels.length - 1) {
+        // After the Great Oak: the ending.
+        await page.getByTestId('next').click();
+        await expect(page.getByTestId('story-text')).toContainText('no villain');
+      }
     });
   });
 });

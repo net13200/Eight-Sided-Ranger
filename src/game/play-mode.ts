@@ -108,8 +108,8 @@ export class CampaignMode implements PlayMode {
       text: t('{n} moves (par {par}).', { n: total, par: this.par ?? 0 }),
       stars,
       next: {
-        label: t(last ? 'Map' : 'Next level'),
-        go: () => (last ? this.game.goMap(this.index) : this.game.goPlay(this.index + 1)),
+        label: t(last ? 'The end' : 'Next level'),
+        go: () => (last ? this.game.goEnding(this.index) : this.game.goPlay(this.index + 1)),
       },
       again: () => this.game.goPlay(this.index),
     };

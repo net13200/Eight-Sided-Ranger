@@ -85,7 +85,12 @@ export class MenuScene implements Scene {
 
   private openStory(): void {
     const reached = districtsReached(this.game.levels, this.game.save.data);
-    this.game.goStory(storySoFar(reached), () => this.game.goMenu(), 'Close');
+    const seen = this.game.save.data.seen;
+    this.game.goStory(
+      storySoFar(reached, (k) => !!seen[k]),
+      () => this.game.goMenu(),
+      'Close',
+    );
   }
 
   private closeSheet(): void {

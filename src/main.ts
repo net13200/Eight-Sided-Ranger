@@ -10,6 +10,7 @@ import { loadLang } from './i18n';
 import { createBrowserPlatform } from './platform/browser';
 import { runSplash } from './splash';
 import { VERSION_LABEL } from './version';
+import { bearPage } from './game/story';
 import './style.css';
 
 runSplash();
@@ -49,7 +50,12 @@ const levelParam = Number(params.get('level'));
 const floorParam = Number(params.get('floor'));
 const gauntletFloor = game.levels[levelParam - 1]?.floors?.[floorParam - 2];
 // ?level=20&floor=3 opens a gauntlet's later floor directly (for screenshots and testing).
-if (gauntletFloor)
+const storyParam = params.get('story') ?? '';
+const bearParam = /^bear([1-6])$/.exec(storyParam);
+// ?story=ending or ?story=bear3 opens those story pages directly (for screenshots).
+if (storyParam === 'ending') game.goEnding(game.levels.length - 1);
+else if (bearParam) game.goStory([bearPage(Number(bearParam[1]) - 1)], () => game.goMenu());
+else if (gauntletFloor)
   game.playLevel(
     { ...gauntletFloor },
     new CampaignMode(game, levelParam - 1, { floor: floorParam - 1, movesBefore: 0 }),

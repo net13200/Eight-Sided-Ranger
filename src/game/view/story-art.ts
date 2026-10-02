@@ -250,30 +250,84 @@ export function drawStoryArt(
     }
     case 'oak': {
       // The Great Oak, and the Ranger looking up at it, a leaf on one face.
-      glow(ctx, cx, cy - 30, 160, GOLD, 0.22);
-      ground(ctx, cx, cy, '#5a3a24');
-      ctx.fillStyle = '#4a2e18';
-      ctx.beginPath();
-      ctx.moveTo(cx - 18, cy + 96);
-      ctx.lineTo(cx - 10, cy - 10);
-      ctx.lineTo(cx + 10, cy - 10);
-      ctx.lineTo(cx + 22, cy + 96);
-      ctx.closePath();
-      ctx.fill();
-      for (const [dx, dy, r, col] of [
-        [-62, -30, 44, '#9a4e1c'],
-        [58, -26, 46, '#a85a20'],
-        [0, -72, 56, '#c06a26'],
-        [-26, -36, 40, '#d08032'],
-        [30, -50, 38, '#e09a3a'],
-      ] as const) {
-        ctx.fillStyle = col;
-        ctx.beginPath();
-        ctx.arc(cx + dx, cy + dy + Math.sin(t + dx) * 0.8, r, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      greatOak(ctx, cx, cy, t, 1);
       leaf(ctx, cx + 70, cy + 20 + Math.sin(t * 1.4) * 2, 7, 0.6);
       ranger(ctx, cx - 70, cy + 108, 24, tt);
+      break;
+    }
+    case 'bear': {
+      // The district's ground, and the Old Bear: cross early on, tired by the end.
+      const d = page.district ?? 0;
+      districtGround(ctx, d, cx, cy);
+      ranger(ctx, cx - 80, cy + 104, 24, tt);
+      oldBear(ctx, cx + 50, cy + 100, 1.1, d < 5 ? 'cross' : 'tired', t);
+      break;
+    }
+    case 'heart': {
+      greatOak(ctx, cx, cy, t, 1);
+      oldBear(ctx, cx + 70, cy + 106, 0.8, 'tired', t);
+      ranger(ctx, cx - 80, cy + 108, 22, tt);
+      break;
+    }
+    case 'letgo': {
+      // The Leaf comes off the die and drifts down.
+      glow(ctx, cx, cy, 150, GOLD, 0.25);
+      ground(ctx, cx, cy, '#5a3a24');
+      ranger(ctx, cx - 30, cy + 104, 34, tt);
+      const k = still ? 0.6 : (time * 0.25) % 1;
+      leaf(ctx, cx + 10 + Math.sin(k * 9) * 18, cy - 40 + k * 130, 10, k * 6, '#e9b44a');
+      break;
+    }
+    case 'leaves': {
+      // Everywhere, at last, the leaves come down.
+      greatOak(ctx, cx, cy, t, 0.7);
+      for (let i = 0; i < 18; i++) {
+        const k = still ? (i * 0.37) % 1 : (time * 0.18 + i * 0.37) % 1;
+        const x = cx - 150 + ((i * 53) % 300) + Math.sin(k * 8 + i) * 12;
+        leaf(ctx, x, cy - 130 + k * 230, 6, k * 7 + i, i % 3 ? '#e09a3a' : '#c86a2a');
+      }
+      ranger(ctx, cx - 80, cy + 108, 22, tt);
+      break;
+    }
+    case 'sleep': {
+      // The Bear curled up in a heap of leaves.
+      glow(ctx, cx, cy + 20, 160, AMBER, 0.15);
+      ground(ctx, cx, cy, '#5a3a24');
+      for (let i = 0; i < 14; i++)
+        leaf(
+          ctx,
+          cx - 90 + i * 14,
+          cy + 98 + Math.sin(i * 2.3) * 6,
+          8,
+          i * 1.3,
+          i % 2 ? '#c86a2a' : '#e09a3a',
+        );
+      oldBear(ctx, cx + 20, cy + 98, 1.2, 'asleep', t);
+      ranger(ctx, cx - 100, cy + 104, 20, tt);
+      break;
+    }
+    case 'snow': {
+      glow(ctx, cx, cy, 170, 'rgba(200,220,255,ALPHA)', 0.12);
+      ground(ctx, cx, cy, '#d8e2ec');
+      for (const [dx, h] of [
+        [-120, 70],
+        [-70, 90],
+        [80, 85],
+        [130, 65],
+      ] as const)
+        pine(ctx, cx + dx, cy + 86, h, '#3a5a48');
+      snowfall(ctx, cx, cy, still ? 0 : time);
+      ranger(ctx, cx, cy + 104, 26, tt);
+      break;
+    }
+    case 'knight': {
+      // Across the fence, in the snow, the six-sided Knight.
+      ground(ctx, cx, cy, '#d8e2ec');
+      fence(ctx, cx - 160, cx + 160, cy + 96);
+      snowfall(ctx, cx, cy, still ? 0 : time);
+      ranger(ctx, cx - 70, cy + 104, 26, tt, Math.abs(Math.sin(t * 3)) * 5);
+      shadow(ctx, cx + 80, cy + 92, 30);
+      d6(ctx, cx + 80, cy + 62, 42, Math.sin(t * 1.5) * 0.4, 6);
       break;
     }
     case 'district':
@@ -283,8 +337,126 @@ export function drawStoryArt(
   ctx.restore();
 }
 
-/** A district's card: its own scenery around the Ranger. */
-function districtArt(ctx: Ctx, d: number, cx: number, cy: number, t: number, tt: number): void {
+/** The Great Oak's trunk and crown (`fade` 1 = full, less = thinning as it lets go). */
+function greatOak(ctx: Ctx, cx: number, cy: number, t: number, fade: number): void {
+  glow(ctx, cx, cy - 30, 160, GOLD, 0.22 * fade);
+  ground(ctx, cx, cy, '#5a3a24');
+  ctx.fillStyle = '#4a2e18';
+  ctx.beginPath();
+  ctx.moveTo(cx - 18, cy + 96);
+  ctx.lineTo(cx - 10, cy - 10);
+  ctx.lineTo(cx + 10, cy - 10);
+  ctx.lineTo(cx + 22, cy + 96);
+  ctx.closePath();
+  ctx.fill();
+  ctx.globalAlpha = fade;
+  for (const [dx, dy, r, col] of [
+    [-62, -30, 44, '#9a4e1c'],
+    [58, -26, 46, '#a85a20'],
+    [0, -72, 56, '#c06a26'],
+    [-26, -36, 40, '#d08032'],
+    [30, -50, 38, '#e09a3a'],
+  ] as const) {
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.arc(cx + dx, cy + dy + Math.sin(t + dx) * 0.8, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+/** The Old Bear sitting on the ground at (x, y). */
+function oldBear(
+  ctx: Ctx,
+  x: number,
+  y: number,
+  s: number,
+  mood: 'cross' | 'tired' | 'asleep',
+  t: number,
+): void {
+  shadow(ctx, x, y, 60 * s);
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(s, s);
+  const breathe = mood === 'asleep' ? Math.sin(t * 1.2) * 1.5 : 0;
+  ctx.fillStyle = '#6a4a32';
+  ctx.strokeStyle = '#24160c';
+  ctx.lineWidth = 2;
+  // Body.
+  ctx.beginPath();
+  if (mood === 'asleep') ctx.ellipse(0, -18 - breathe, 46, 22 + breathe, 0, 0, Math.PI * 2);
+  else ctx.ellipse(0, -30, 32, 34, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  // Head.
+  const hx = mood === 'asleep' ? -34 : 0;
+  const hy = mood === 'asleep' ? -22 : mood === 'tired' ? -62 : -70;
+  for (const sx of [-1, 1]) {
+    ctx.beginPath();
+    ctx.arc(hx + sx * 14, hy - 16, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
+  ctx.beginPath();
+  ctx.ellipse(hx, hy, 21, 19, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#b8a48a';
+  ctx.beginPath();
+  ctx.ellipse(hx, hy + 8, 10, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#24160c';
+  ctx.beginPath();
+  ctx.ellipse(hx, hy + 4, 4, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#24160c';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  if (mood === 'cross') {
+    // Brows down, eyes glaring.
+    ctx.moveTo(hx - 12, hy - 10);
+    ctx.lineTo(hx - 4, hy - 6);
+    ctx.moveTo(hx + 12, hy - 10);
+    ctx.lineTo(hx + 4, hy - 6);
+    ctx.stroke();
+    ctx.fillStyle = '#ffcf6a';
+    ctx.fillRect(hx - 9, hy - 5, 4, 3);
+    ctx.fillRect(hx + 5, hy - 5, 4, 3);
+  } else {
+    // Heavy lids (tired), or shut (asleep).
+    ctx.moveTo(hx - 10, hy - 4);
+    ctx.lineTo(hx - 4, hy - 3);
+    ctx.moveTo(hx + 4, hy - 3);
+    ctx.lineTo(hx + 10, hy - 4);
+    ctx.stroke();
+  }
+  ctx.restore();
+  if (mood === 'asleep') {
+    ctx.fillStyle = '#f3ead2';
+    ctx.font = 'bold 14px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    for (let i = 0; i < 3; i++) {
+      const k = (t * 0.4 + i / 3) % 1;
+      ctx.globalAlpha = Math.sin(k * Math.PI);
+      ctx.fillText('z', x - 50 * s + k * 20, y - 50 * s - k * 40);
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+function snowfall(ctx: Ctx, cx: number, cy: number, time: number): void {
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  for (let i = 0; i < 40; i++) {
+    const k = (time * 0.12 + i * 0.137) % 1;
+    const x = cx - 165 + ((i * 71) % 330) + Math.sin(k * 6 + i) * 6;
+    ctx.beginPath();
+    ctx.arc(x, cy - 140 + k * 250, 1.5 + (i % 3) * 0.7, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+/** A district's ground and sky (no figures). */
+function districtGround(ctx: Ctx, d: number, cx: number, cy: number): void {
   const looks = [
     { sky: 'rgba(150,200,120,ALPHA)', ground: '#3f6e3a' },
     { sky: 'rgba(120,150,130,ALPHA)', ground: '#35543b' },
@@ -295,6 +467,11 @@ function districtArt(ctx: Ctx, d: number, cx: number, cy: number, t: number, tt:
   ][d]!;
   glow(ctx, cx, cy, 170, looks.sky, 0.22);
   ground(ctx, cx, cy, looks.ground);
+}
+
+/** A district's card: its own scenery around the Ranger. */
+function districtArt(ctx: Ctx, d: number, cx: number, cy: number, t: number, tt: number): void {
+  districtGround(ctx, d, cx, cy);
   if (d === 0) {
     for (const [dx, h] of [
       [-120, 70],

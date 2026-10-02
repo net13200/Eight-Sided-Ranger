@@ -10,13 +10,13 @@ The story of Eight-Sided Ranger. Tone: gentle, witty, a little melancholy. Short
 - **The goal:** reach the Great Oak in the Heartwood, whose first falling leaf starts winter, and help it let go.
 - **The payoff:** the Leaf face that "does nothing" is a leaf from the Oak, kept since the last good autumn. The Ranger has been holding on too.
 
-Districts and their opening lines: see `DISTRICT_LINES` in `src/game/story.ts`.
+Districts and their opening lines: see `DISTRICT_LINES` in `src/game/story.ts` (with `BEAR_LINES` and `ENDING`).
 
 ## Approved direction: the Old Bear
 
 The Old Bear can't get to his winter sleep, because autumn won't end. He is angry about it, and he thinks it's the Ranger's fault, so he haunts them: he turns up at the end of every district (each level 10). The Ranger never harms him and tries to help. In play he can't be aimed at or snared; he moves every other turn.
 
-## Draft (not approved yet): the Bear's cards
+## Approved: the Bear's cards
 
 One short card the first time each level 10 is played.
 
@@ -27,7 +27,7 @@ One short card the first time each level 10 is played.
 5. _The Hush._ "At night he is quieter, and worse. He sits where you'll pass, and waits."
 6. _The Heartwood._ "He is under the Great Oak. He isn't angry any more. Just very, very tired."
 
-## Draft (not approved yet): the ending
+## Approved: the ending
 
 After the Great Oak (reached with the Leaf face-down).
 
