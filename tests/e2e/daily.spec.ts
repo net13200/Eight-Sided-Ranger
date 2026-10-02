@@ -1,5 +1,5 @@
 /** The Daily Trail: locked before the Edgewood, a whole run, practice, and resuming a run. */
-import { execFileSync } from 'node:child_process';
+import { seedSave } from '../../tools/lib/seed';
 import { expect, test, type Page } from '@playwright/test';
 import { startState } from '../../src/engine';
 import { dailyFloor } from '../../src/meta/daily';
@@ -7,10 +7,7 @@ import { solve } from '../../src/solver/solve';
 
 const DATE = '2026-10-01';
 const KEY = { N: 'ArrowUp', E: 'ArrowRight', S: 'ArrowDown', W: 'ArrowLeft' } as const;
-const seed = (n: number) =>
-  execFileSync('npx', ['tsx', 'tools/seed-save.ts', String(n)])
-    .toString()
-    .trim();
+const seed = (n: number) => seedSave(n);
 const routes = [1, 2, 3].map((f) => solve(startState(dailyFloor(DATE, 1, f))).path);
 
 async function open(page: Page, levelsDone: number): Promise<void> {

@@ -7,7 +7,7 @@ import { currentStreak, utcDate } from '../../meta/daily';
 import { dailyOpen, districtsReached } from '../../meta/progress';
 import { VERSION_LABEL } from '../../version';
 import type { Game } from '../game';
-import { HOW_TO_PLAY } from '../how-to-play';
+import { howToPlay } from '../how-to-play';
 import type { Command } from '../input';
 import { storySoFar } from '../story';
 import { el, icon, iconButton, place } from '../ui';
@@ -16,7 +16,7 @@ import { C } from '../view/palette';
 import { muteButton } from './common';
 import { DAILY_SPOT } from './map';
 import type { Scene } from './scene';
-import { t } from '../../i18n';
+import { LANGS, loadLang, t } from '../../i18n';
 
 export class MenuScene implements Scene {
   readonly name = 'menu';
@@ -126,12 +126,13 @@ export class MenuScene implements Scene {
 
   private openHowTo(): void {
     const body = el('div', { className: 'how-to-body' });
-    for (const s of HOW_TO_PLAY)
+    const reached = districtsReached(this.game.levels, this.game.save.data);
+    for (const s of howToPlay(reached))
       body.append(el('h3', { text: t(s.heading) }), ...s.lines.map((l) => el('p', { text: t(l) })));
     this.openSheet('how-to', t('How to play'), [body]);
   }
 
-  private openSettings(): void {
+  openSettings(): void {
     const toggle = (
       id: string,
       label: string,
@@ -166,13 +167,39 @@ export class MenuScene implements Scene {
           this.game.reducedMotion,
           (v) => this.game.save.update((d) => (d.settings.reducedMotion = v)),
         ),
-        // A language choice joins these once the translations exist.
+        this.languagePicker(),
         el('p', {
           className: 'fine',
           text: t('Progress is saved on this device only. The game collects no data.'),
         }),
         el('p', { className: 'fine', text: VERSION_LABEL }),
       ]),
+    ]);
+  }
+
+  /** Language: the device's, or one chosen here (downloaded, then the title screen redrawn). */
+  private languagePicker(): HTMLElement {
+    const select = el('select', { testId: 'setting-lang' });
+    const current = this.game.save.data.settings.lang;
+    for (const [id, name] of [
+      ['', t('Device language')],
+      ...LANGS.map((l) => [l.id, l.name] as const),
+    ] as const) {
+      const o = el('option', { text: name });
+      o.value = id;
+      o.selected = (current ?? '') === id;
+      select.append(o);
+    }
+    select.addEventListener('change', () => {
+      const lang = select.value || null;
+      this.game.save.update((d) => (d.settings.lang = lang));
+      void loadLang(lang).then(() => {
+        this.game.goMenu();
+        (this.game.scene as MenuScene | null)?.openSettings();
+      });
+    });
+    return el('label', { className: 'toggle lang' }, [
+      el('span', {}, [el('strong', { text: t('Language') }), select]),
     ]);
   }
 

@@ -1,11 +1,8 @@
 /** The world map: first launch, tapping levels, keys, returning from a level, laying a new road. */
-import { execFileSync } from 'node:child_process';
+import { seedSave } from '../../tools/lib/seed';
 import { expect, test, type Page } from '@playwright/test';
 
-const seed = (n: number, ...flags: string[]) =>
-  execFileSync('npx', ['tsx', 'tools/seed-save.ts', String(n), '', ...flags])
-    .toString()
-    .trim();
+const seed = (n: number, ...flags: string[]) => seedSave(n, [], flags.includes('--unseen'));
 const withSave = async (page: Page, save: string) =>
   page.addInitScript((s) => localStorage.setItem('esr-save', s), save);
 const scene = (page: Page) => page.evaluate(() => (window.__esr as { scene(): string }).scene());

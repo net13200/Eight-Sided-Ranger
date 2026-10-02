@@ -1,7 +1,7 @@
 id: 6-08
 name: Swing Past
 par: 11
-hint: Its slow turn is your chance
+hint: His slow turn is your chance
 loadout: Leaf Rope Boots Knife Leaf Leaf Leaf Leaf
 teaches: bear,rope
 ---

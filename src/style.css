@@ -470,3 +470,21 @@ button:focus-visible {
   color: #f3ead2;
   font: inherit;
 }
+.toggle.lang span {
+  flex: 1;
+}
+.toggle.lang select {
+  margin-top: 4px;
+  min-height: 44px;
+  font: inherit;
+  font-size: 15px;
+  color: #f3ead2;
+  background: #20302a;
+  border: 1px solid #4a6a52;
+  border-radius: 8px;
+  padding: 0 8px;
+}
+.sheet.lesson.long p {
+  font-size: 14px;
+  line-height: 1.32;
+}

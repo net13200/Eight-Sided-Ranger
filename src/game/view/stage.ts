@@ -8,6 +8,7 @@
  * side panels keep out of the screen's safe-area insets (a notch, rounded
  * corners, the home bar), which fullscreen apps and portals draw under.
  */
+import { t } from '../../i18n';
 export const LOGICAL_W = 340;
 export const LOGICAL_H = 480;
 
@@ -36,7 +37,7 @@ export class Stage {
     this.root.className = 'stage';
     this.canvas = document.createElement('canvas');
     this.canvas.className = 'stage-canvas';
-    this.canvas.setAttribute('aria-label', 'Game board');
+    this.canvas.setAttribute('aria-label', t('Game board'));
     this.canvas.setAttribute('role', 'img');
     // Focusable so screen readers can land on the board and read its description.
     this.canvas.tabIndex = 0;

@@ -27,6 +27,22 @@ export class LessonCard {
     this.lesson = { title: t(lesson.title), text: t(lesson.text) };
   }
 
+  /**
+   * Keeps the card on the stage: a long lesson (some languages run long)
+   * moves up, and if it still doesn't fit, its text gets a little smaller.
+   * The whole text is laid out from the start (the untyped rest is only
+   * hidden), so its size only changes when it is first laid out.
+   */
+  private fit(y: number): void {
+    if (!this.root?.offsetHeight) return;
+    const top = 54;
+    const bottom = 474;
+    this.root.style.top = `${y}px`;
+    if (this.root.offsetHeight > bottom - top) this.root.classList.add('long');
+    const h = this.root.offsetHeight;
+    if (y + h > bottom) this.root.style.top = `${Math.max(top, bottom - h)}px`;
+  }
+
   get typing(): boolean {
     return this.shown < this.lesson.text.length;
   }
@@ -61,6 +77,17 @@ export class LessonCard {
     place(this.root, 22, y, 296, 0);
     this.root.style.height = 'auto';
     ui.append(this.root);
+    // Measured once it's laid out (the stage may not be in the page yet).
+    const root = this.root;
+    if (typeof ResizeObserver !== 'undefined') {
+      let fitting = false;
+      new ResizeObserver(() => {
+        if (fitting) return;
+        fitting = true;
+        this.fit(y);
+        fitting = false;
+      }).observe(root);
+    }
     if (this.instant) this.finishTyping();
     else {
       this.render();

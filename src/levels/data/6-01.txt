@@ -1,7 +1,7 @@
 id: 6-01
 name: The Old Bear
 par: 9
-hint: It rests, rears up, then moves
+hint: He rests, rears up, then moves
 loadout: Leaf Leaf Knife Leaf Leaf Leaf Leaf Leaf
 teaches: bear
 ---

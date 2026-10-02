@@ -1,42 +1,10 @@
 /**
- * Prints a save (JSON) with the first N levels beaten, for screenshots and
- * browser tests:  npx tsx tools/seed-save.ts 4 3,3,2,1 [--unseen]
- * Stars per level are listed (default 3). --unseen leaves the newest road
- * unlaid, so the map lays it on entry.
+ * Prints a save (JSON) with the first N levels beaten, for screenshots:
+ *   npx tsx tools/seed-save.ts 4 3,3,2,1 [--unseen]
+ * (Browser tests import seedSave from tools/lib/seed.ts directly.)
  */
-import { readdirSync, readFileSync } from 'node:fs';
-import { parseLevel } from '../src/engine';
-import { fingerprint, runPar } from '../src/meta/progress';
-import { withFloors } from '../src/levels/floors';
-import { freshSave } from '../src/meta/save';
+import { seedSave } from './lib/seed';
 
 const [n = '0', starList = ''] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
-const unseen = process.argv.includes('--unseen');
 const stars = starList.split(',').filter(Boolean).map(Number);
-const dir = 'src/levels/data';
-const gdir = 'src/levels/gauntlets';
-const floors = Object.fromEntries(
-  readdirSync(gdir)
-    .filter((f) => f.endsWith('.txt'))
-    .map((f) => [f, readFileSync(`${gdir}/${f}`, 'utf8')]),
-);
-const levels = withFloors(
-  readdirSync(dir)
-    .filter((f) => f.endsWith('.txt'))
-    .sort()
-    .map((f) => parseLevel(readFileSync(`${dir}/${f}`, 'utf8'))),
-  floors,
-);
-const save = freshSave();
-for (let i = 0; i < Number(n); i++) {
-  const lv = levels[i]!;
-  save.levels[lv.id] = {
-    stars: stars[i] ?? 3,
-    bestMoves: runPar(lv) ?? 0,
-    completions: 1,
-    fp: fingerprint(lv),
-  };
-  save.seen[`lesson:${lv.id}`] = true;
-}
-for (let i = 1; i <= Number(n) - (unseen ? 1 : 0); i++) save.seen[`road:${i}`] = true;
-console.log(JSON.stringify(save));
+console.log(seedSave(Number(n), stars, process.argv.includes('--unseen')));
