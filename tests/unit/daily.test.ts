@@ -43,7 +43,38 @@ describe('Daily Trail floors', () => {
 
   it('the tier never goes past the districts a player has reached', () => {
     expect(dailyTier('2026-10-01', 1)).toBe(1);
-    expect(dailyTier('2026-10-01', 6)).toBe(1); // only the Edgewood is released
+    expect(dailyTier('2026-10-01', 6)).toBe(1); // only the Edgewood was released then
+    expect(dailyTier('2026-10-03', 6)).toBe(6);
+    expect(dailyTier('2026-10-03', 3)).toBe(3);
+  });
+
+  it('later districts: fair floors, using only what those districts teach', () => {
+    const taught = [
+      ['Bow', 'Knife', 'Herb'],
+      ['Trap', 'Cloak'],
+      ['Boots', 'Rope'],
+      ['Horn'],
+      ['Acorn'],
+      [],
+    ];
+    for (let tier = 2; tier <= 6; tier++) {
+      const ok = ['Leaf', ...taught.slice(0, tier).flat()];
+      const floors = [1, 2, 3].map((f) => dailyFloor('2026-10-05', tier, f));
+      floors.forEach((lv, i) => {
+        expect(lv.hp ?? 3).toBe(i === 0 ? 3 : 1);
+        expect(solve(startState(lv), { maxNodes: 200_000 }).moves).toBe(lv.par);
+        for (const f of lv.loadout) expect(ok).toContain(f);
+        if (tier < 6) expect(lv.enemies.some((e) => e.kind === 'bear')).toBe(false);
+      });
+    }
+  }, 60_000);
+
+  // Golden for the later districts too, from their first day.
+  it('later districts are exactly as they were', () => {
+    const got = [2, 6].flatMap((tier) =>
+      [1, 2, 3].map((f) => fingerprint(dailyFloor('2026-10-03', tier, f))),
+    );
+    expect(got).toEqual(['35f7da7f', '16c5553d', 'f502b246', '02a84a3d', '2d5c52b6', '776eaa53']);
   });
 });
 

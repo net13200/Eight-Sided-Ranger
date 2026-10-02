@@ -18,11 +18,41 @@ export const DAILY_FLOORS = 3;
 /** When each district's faces and creatures join the Daily Trail. */
 export const RELEASES: readonly { readonly district: number; readonly from: string }[] = [
   { district: 1, from: '2026-01-01' },
+  // Added after trails were already being made: from a later date, so no past day changes.
+  { district: 2, from: '2026-10-03' },
+  { district: 3, from: '2026-10-03' },
+  { district: 4, from: '2026-10-03' },
+  { district: 5, from: '2026-10-03' },
+  { district: 6, from: '2026-10-03' },
 ];
 
 /** What a trail may use, by tier (the districts it draws on). */
+const HOLLOW = ['Bow', 'Knife', 'Herb', 'Trap', 'Cloak'];
+const RIVER = [...HOLLOW, 'Boots', 'Rope'];
+const MEADOW = [...RIVER, 'Horn'];
+const HUSH = [...MEADOW, 'Acorn'];
 const POOLS: readonly Pool[] = [
   { faces: ['Bow', 'Knife', 'Herb'], creatures: ['wolf'], springs: true },
+  { faces: HOLLOW, creatures: ['wolf', 'sleeper'], springs: true },
+  { faces: RIVER, creatures: ['wolf', 'sleeper'], springs: true, tiles: ['}', '{', 'o', 'P'] },
+  {
+    faces: MEADOW,
+    creatures: ['wolf', 'sleeper', 'stag', 'boar'],
+    springs: true,
+    tiles: ['}', '{', 'o', 'P', 'f'],
+  },
+  {
+    faces: HUSH,
+    creatures: ['wolf', 'sleeper', 'stag', 'boar', 'owl'],
+    springs: true,
+    tiles: ['}', '{', 'o', 'P', 'f', '%'],
+  },
+  {
+    faces: HUSH,
+    creatures: ['wolf', 'sleeper', 'stag', 'boar', 'owl', 'bear'],
+    springs: true,
+    tiles: ['}', '{', 'o', 'P', 'f', '%'],
+  },
 ];
 
 const BANDS: readonly (readonly [number, number])[] = [

@@ -15,9 +15,21 @@ import { solve } from '../solver/solve';
 /** Faces, creatures and tiles a floor may use: grows as districts are released. */
 export interface Pool {
   readonly faces: readonly string[];
+  /** wolf, sleeper, stag, boar, owl, bear. */
   readonly creatures: readonly string[];
   readonly springs: boolean;
+  /** Level glyphs of extra tiles to scatter (currents, pads, posts, ferns, brambles). */
+  readonly tiles?: readonly string[];
 }
+
+const CREATURE_GLYPH: Readonly<Record<string, string>> = {
+  wolf: 'w',
+  sleeper: 'z',
+  stag: 's',
+  boar: 'b',
+  owl: 'h',
+  bear: 'B',
+};
 
 export interface GenParams {
   readonly seed: number;
@@ -96,10 +108,27 @@ function candidate(rng: Rng, p: GenParams): string | null {
     const c = free();
     if (c) g[c.y]![c.x] = '~';
   }
+  // (Everything a pool adds beyond the Edgewood draws from the generator only
+  // when the pool has it, so Edgewood-only trails stay exactly as they were.)
+  const tiles = p.pool.tiles ?? [];
+  if (tiles.length) {
+    const extra = 1 + rng.int(4);
+    for (let k = 0; k < extra; k++) {
+      const c = free();
+      if (c) g[c.y]![c.x] = tiles[rng.int(tiles.length)]!;
+    }
+  }
+  // Animals: wolves by default; a pool with more kinds picks among them (the
+  // Old Bear at most once).
+  const kinds = p.pool.creatures.filter((k) => k !== 'bear').map((k) => CREATURE_GLYPH[k]!);
   const wolves = 1 + rng.int(p.wolves);
   for (let k = 0; k < wolves; k++) {
     const c = free();
-    if (c) g[c.y]![c.x] = 'w';
+    if (c) g[c.y]![c.x] = kinds.length > 1 ? kinds[rng.int(kinds.length)]! : 'w';
+  }
+  if (p.pool.creatures.includes('bear') && rng.int(2) === 0) {
+    const c = free();
+    if (c) g[c.y]![c.x] = 'B';
   }
   // Two or three of the pool's faces on the die, the rest blank Leaves.
   const faces = [...p.pool.faces];
