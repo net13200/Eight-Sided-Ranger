@@ -1,7 +1,7 @@
 id: 4-09
 name: Tusk and Horn
 par: 10
-hint: Blow the boar back
+hint: The Horn buys you a turn
 loadout: Leaf Horn Knife Bow Leaf Leaf Leaf Leaf
 teaches: horn,boar
 ---
